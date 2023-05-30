@@ -1,7 +1,7 @@
 import { signal, Signal } from '@angular/core';
 import { SignalState } from '../models';
 
-export function withState<StaticState extends Record<string, unknown>>(
+export function withState<StaticState extends Record<string, any>>(
   state: StaticState
 ): () => {
   state: SignalState<StaticState>;
