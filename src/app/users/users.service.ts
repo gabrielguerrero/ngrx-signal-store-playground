@@ -9,11 +9,13 @@ const usersMock: User[] = [
   { id: 3, name: 'Marko' },
   { id: 4, name: 'Mike' },
   { id: 5, name: 'Tim' },
+  { id: 6, name: 'Gabs' },
 ];
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
   getAll(): Promise<User[]> {
+    console.log('calling fetch users');
     return new Promise((resolve) => {
       setTimeout(() => resolve(usersMock), 1000);
     });
