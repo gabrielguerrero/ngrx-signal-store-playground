@@ -16,14 +16,6 @@ type FeatureResult<Feature extends SignalStoreFeature> = Feature['state'] &
   Feature['updaters'] &
   Feature['effects'];
 
-type F1Factory<F1 extends SignalStoreFeature> = (
-  input: SignalStoreFeature & SignalStoreUpdate<{}>
-) => F1;
-
-type F2Factory<F1 extends SignalStoreFeature, F2 extends SignalStoreFeature> = (
-  input: F1 & SignalStoreUpdate<StaticState<F1['state']>>
-) => F2;
-
 type MergeSignalStoreFeature<T extends SignalStoreFeature[]> = {
   state: UnionToIntersection<T[number]['state']>;
   computed: UnionToIntersection<T[number]['computed']>;
@@ -35,163 +27,202 @@ type MergeSignalStoreFeature<T extends SignalStoreFeature[]> = {
   };
 };
 
+type MergeSignalStoreFeatureFactory<
+  INPUTS extends SignalStoreFeature[],
+  RESULT extends SignalStoreFeature
+> = (
+  input: {
+    state: UnionToIntersection<INPUTS[number]['state']>;
+    computed: UnionToIntersection<INPUTS[number]['computed']>;
+    updaters: UnionToIntersection<INPUTS[number]['updaters']>;
+    effects: UnionToIntersection<INPUTS[number]['effects']>;
+    hooks: {
+      onInit: () => void;
+      onDestroy: () => void;
+    };
+  } & SignalStoreUpdate<
+    StaticState<
+      Record<string, Signal<any>> & UnionToIntersection<INPUTS[number]['state']>
+    >
+  >
+) => RESULT;
+
+// TODO: this seems to work fine to replace the F[x]Result types but gives a weird problem in the CounterStore when used for inheritance
+// userStore case works fine
+// type MergeFeatureResult<T extends SignalStoreFeature[]> = FeatureResult<
+//   SignalStoreFeature & UnionToIntersection<T[number]>
+// > &
+//   SignalStoreUpdate<
+//     StaticState<
+//       Record<string, Signal<any> & UnionToIntersection<T[number]['state']>>
+//     >
+//   >;
+
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I
 ) => void
   ? I
   : never;
 
-type F2Union<F1 extends SignalStoreFeature, F2 extends SignalStoreFeature> = {
-  state: F1['state'] & F2['state'];
-  computed: F1['computed'] & F2['computed'];
-  updaters: F1['updaters'] & F2['updaters'];
-  effects: F1['effects'] & F2['effects'];
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  };
-};
+// type F2Union<F1 extends SignalStoreFeature, F2 extends SignalStoreFeature> = {
+//   state: F1['state'] & F2['state'];
+//   computed: F1['computed'] & F2['computed'];
+//   updaters: F1['updaters'] & F2['updaters'];
+//   effects: F1['effects'] & F2['effects'];
+//   hooks: {
+//     onInit: () => void;
+//     onDestroy: () => void;
+//   };
+// };
+//
+// type F3Union<
+//   F1 extends SignalStoreFeature,
+//   F2 extends SignalStoreFeature,
+//   F3 extends SignalStoreFeature
+// > = {
+//   state: F1['state'] & F2['state'] & F3['state'];
+//   computed: F1['computed'] & F2['computed'] & F3['computed'];
+//   updaters: F1['updaters'] & F2['updaters'] & F3['updaters'];
+//   effects: F1['effects'] & F2['effects'] & F3['effects'];
+//   hooks: {
+//     onInit: () => void;
+//     onDestroy: () => void;
+//   };
+// };
+//
+// type F4Union<
+//   F1 extends SignalStoreFeature,
+//   F2 extends SignalStoreFeature,
+//   F3 extends SignalStoreFeature,
+//   F4 extends SignalStoreFeature
+// > = {
+//   state: F1['state'] & F2['state'] & F3['state'] & F4['state'];
+//   computed: F1['computed'] & F2['computed'] & F3['computed'] & F4['computed'];
+//   updaters: F1['updaters'] & F2['updaters'] & F3['updaters'] & F4['updaters'];
+//   effects: F1['effects'] & F2['effects'] & F3['effects'] & F4['effects'];
+//   hooks: {
+//     onInit: () => void;
+//     onDestroy: () => void;
+//   };
+// };
+//
+// type F5Union<
+//   F1 extends SignalStoreFeature,
+//   F2 extends SignalStoreFeature,
+//   F3 extends SignalStoreFeature,
+//   F4 extends SignalStoreFeature,
+//   F5 extends SignalStoreFeature
+// > = {
+//   state: F1['state'] & F2['state'] & F3['state'] & F4['state'] & F5['state'];
+//   computed: F1['computed'] &
+//     F2['computed'] &
+//     F3['computed'] &
+//     F4['computed'] &
+//     F5['computed'];
+//   updaters: F1['updaters'] &
+//     F2['updaters'] &
+//     F3['updaters'] &
+//     F4['updaters'] &
+//     F5['updaters'];
+//   effects: F1['effects'] &
+//     F2['effects'] &
+//     F3['effects'] &
+//     F4['effects'] &
+//     F5['effects'];
+//   hooks: {
+//     onInit: () => void;
+//     onDestroy: () => void;
+//   };
+// };
+//
+// type F6Union<
+//   F1 extends SignalStoreFeature,
+//   F2 extends SignalStoreFeature,
+//   F3 extends SignalStoreFeature,
+//   F4 extends SignalStoreFeature,
+//   F5 extends SignalStoreFeature,
+//   F6 extends SignalStoreFeature
+// > = {
+//   state: F1['state'] &
+//     F2['state'] &
+//     F3['state'] &
+//     F4['state'] &
+//     F5['state'] &
+//     F6['state'];
+//   computed: F1['computed'] &
+//     F2['computed'] &
+//     F3['computed'] &
+//     F4['computed'] &
+//     F5['computed'] &
+//     F6['computed'];
+//   updaters: F1['updaters'] &
+//     F2['updaters'] &
+//     F3['updaters'] &
+//     F4['updaters'] &
+//     F5['updaters'] &
+//     F6['updaters'];
+//   effects: F1['effects'] &
+//     F2['effects'] &
+//     F3['effects'] &
+//     F4['effects'] &
+//     F5['effects'] &
+//     F6['effects'];
+//   hooks: {
+//     onInit: () => void;
+//     onDestroy: () => void;
+//   };
+// };
+//
+// type F7Union<
+//   F1 extends SignalStoreFeature,
+//   F2 extends SignalStoreFeature,
+//   F3 extends SignalStoreFeature,
+//   F4 extends SignalStoreFeature,
+//   F5 extends SignalStoreFeature,
+//   F6 extends SignalStoreFeature,
+//   F7 extends SignalStoreFeature
+// > = {
+//   state: F1['state'] &
+//     F2['state'] &
+//     F3['state'] &
+//     F4['state'] &
+//     F5['state'] &
+//     F6['state'] &
+//     F7['state'];
+//   computed: F1['computed'] &
+//     F2['computed'] &
+//     F3['computed'] &
+//     F4['computed'] &
+//     F5['computed'] &
+//     F6['computed'] &
+//     F7['computed'];
+//   updaters: F1['updaters'] &
+//     F2['updaters'] &
+//     F3['updaters'] &
+//     F4['updaters'] &
+//     F5['updaters'] &
+//     F6['updaters'] &
+//     F7['updaters'];
+//   effects: F1['effects'] &
+//     F2['effects'] &
+//     F3['effects'] &
+//     F4['effects'] &
+//     F5['effects'] &
+//     F6['effects'] &
+//     F7['effects'];
+//   hooks: {
+//     onInit: () => void;
+//     onDestroy: () => void;
+//   };
+// };
 
-type F3Union<
-  F1 extends SignalStoreFeature,
-  F2 extends SignalStoreFeature,
-  F3 extends SignalStoreFeature
-> = {
-  state: F1['state'] & F2['state'] & F3['state'];
-  computed: F1['computed'] & F2['computed'] & F3['computed'];
-  updaters: F1['updaters'] & F2['updaters'] & F3['updaters'];
-  effects: F1['effects'] & F2['effects'] & F3['effects'];
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  };
-};
+type F1Factory<F1 extends SignalStoreFeature> = (
+  input: SignalStoreFeature & SignalStoreUpdate<{}>
+) => F1;
 
-type F4Union<
-  F1 extends SignalStoreFeature,
-  F2 extends SignalStoreFeature,
-  F3 extends SignalStoreFeature,
-  F4 extends SignalStoreFeature
-> = {
-  state: F1['state'] & F2['state'] & F3['state'] & F4['state'];
-  computed: F1['computed'] & F2['computed'] & F3['computed'] & F4['computed'];
-  updaters: F1['updaters'] & F2['updaters'] & F3['updaters'] & F4['updaters'];
-  effects: F1['effects'] & F2['effects'] & F3['effects'] & F4['effects'];
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  };
-};
-
-type F5Union<
-  F1 extends SignalStoreFeature,
-  F2 extends SignalStoreFeature,
-  F3 extends SignalStoreFeature,
-  F4 extends SignalStoreFeature,
-  F5 extends SignalStoreFeature
-> = {
-  state: F1['state'] & F2['state'] & F3['state'] & F4['state'] & F5['state'];
-  computed: F1['computed'] &
-    F2['computed'] &
-    F3['computed'] &
-    F4['computed'] &
-    F5['computed'];
-  updaters: F1['updaters'] &
-    F2['updaters'] &
-    F3['updaters'] &
-    F4['updaters'] &
-    F5['updaters'];
-  effects: F1['effects'] &
-    F2['effects'] &
-    F3['effects'] &
-    F4['effects'] &
-    F5['effects'];
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  };
-};
-
-type F6Union<
-  F1 extends SignalStoreFeature,
-  F2 extends SignalStoreFeature,
-  F3 extends SignalStoreFeature,
-  F4 extends SignalStoreFeature,
-  F5 extends SignalStoreFeature,
-  F6 extends SignalStoreFeature
-> = {
-  state: F1['state'] &
-    F2['state'] &
-    F3['state'] &
-    F4['state'] &
-    F5['state'] &
-    F6['state'];
-  computed: F1['computed'] &
-    F2['computed'] &
-    F3['computed'] &
-    F4['computed'] &
-    F5['computed'] &
-    F6['computed'];
-  updaters: F1['updaters'] &
-    F2['updaters'] &
-    F3['updaters'] &
-    F4['updaters'] &
-    F5['updaters'] &
-    F6['updaters'];
-  effects: F1['effects'] &
-    F2['effects'] &
-    F3['effects'] &
-    F4['effects'] &
-    F5['effects'] &
-    F6['effects'];
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  };
-};
-
-type F7Union<
-  F1 extends SignalStoreFeature,
-  F2 extends SignalStoreFeature,
-  F3 extends SignalStoreFeature,
-  F4 extends SignalStoreFeature,
-  F5 extends SignalStoreFeature,
-  F6 extends SignalStoreFeature,
-  F7 extends SignalStoreFeature
-> = {
-  state: F1['state'] &
-    F2['state'] &
-    F3['state'] &
-    F4['state'] &
-    F5['state'] &
-    F6['state'] &
-    F7['state'];
-  computed: F1['computed'] &
-    F2['computed'] &
-    F3['computed'] &
-    F4['computed'] &
-    F5['computed'] &
-    F6['computed'] &
-    F7['computed'];
-  updaters: F1['updaters'] &
-    F2['updaters'] &
-    F3['updaters'] &
-    F4['updaters'] &
-    F5['updaters'] &
-    F6['updaters'] &
-    F7['updaters'];
-  effects: F1['effects'] &
-    F2['effects'] &
-    F3['effects'] &
-    F4['effects'] &
-    F5['effects'] &
-    F6['effects'] &
-    F7['effects'];
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  };
-};
+type F2Factory<F1 extends SignalStoreFeature, F2 extends SignalStoreFeature> = (
+  input: F1 & SignalStoreUpdate<StaticState<F1['state']>>
+) => F2;
 
 type F3Factory<
   F1 extends SignalStoreFeature,
@@ -227,25 +258,6 @@ type F4Factory<
     };
   } & SignalStoreUpdate<StaticState<F1['state'] & F2['state'] & F3['state']>>
 ) => F4;
-
-// TODO test this
-type MergeSignalStoreFeatureFactory<
-  T extends SignalStoreFeature[],
-  R extends SignalStoreFeature
-> = (input: {
-  state: UnionToIntersection<T[number]['state']>;
-  computed: UnionToIntersection<T[number]['computed']>;
-  updaters: UnionToIntersection<T[number]['updaters']>;
-  effects: UnionToIntersection<T[number]['effects']>;
-  hooks: {
-    onInit: () => void;
-    onDestroy: () => void;
-  } & SignalStoreUpdate<
-    StaticState<
-      Record<string, Signal<any>> & UnionToIntersection<T[number]['state']>
-    >
-  >;
-}) => R;
 
 type F5Factory<
   F1 extends SignalStoreFeature,
@@ -304,55 +316,55 @@ type F6Factory<
   >
 ) => F6;
 
-type F7Factory<
-  F1 extends SignalStoreFeature,
-  F2 extends SignalStoreFeature,
-  F3 extends SignalStoreFeature,
-  F4 extends SignalStoreFeature,
-  F5 extends SignalStoreFeature,
-  F6 extends SignalStoreFeature,
-  F7 extends SignalStoreFeature
-> = (
-  input: {
-    state: F1['state'] &
-      F2['state'] &
-      F3['state'] &
-      F4['state'] &
-      F5['state'] &
-      F7['state'];
-    computed: F1['computed'] &
-      F2['computed'] &
-      F3['computed'] &
-      F4['computed'] &
-      F5['computed'] &
-      F6['computed'];
-    updaters: F1['updaters'] &
-      F2['updaters'] &
-      F3['updaters'] &
-      F4['updaters'] &
-      F5['computed'] &
-      F6['computed'];
-    effects: F1['effects'] &
-      F2['effects'] &
-      F3['effects'] &
-      F4['effects'] &
-      F5['effects'] &
-      F6['effects'];
-    hooks: {
-      onInit: () => void;
-      onDestroy: () => void;
-    };
-  } & SignalStoreUpdate<
-    StaticState<
-      F1['state'] &
-        F2['state'] &
-        F3['state'] &
-        F4['state'] &
-        F5['state'] &
-        F6['state']
-    >
-  >
-) => F7;
+// type F7Factory<
+//   F1 extends SignalStoreFeature,
+//   F2 extends SignalStoreFeature,
+//   F3 extends SignalStoreFeature,
+//   F4 extends SignalStoreFeature,
+//   F5 extends SignalStoreFeature,
+//   F6 extends SignalStoreFeature,
+//   F7 extends SignalStoreFeature
+// > = (
+//   input: {
+//     state: F1['state'] &
+//       F2['state'] &
+//       F3['state'] &
+//       F4['state'] &
+//       F5['state'] &
+//       F7['state'];
+//     computed: F1['computed'] &
+//       F2['computed'] &
+//       F3['computed'] &
+//       F4['computed'] &
+//       F5['computed'] &
+//       F6['computed'];
+//     updaters: F1['updaters'] &
+//       F2['updaters'] &
+//       F3['updaters'] &
+//       F4['updaters'] &
+//       F5['computed'] &
+//       F6['computed'];
+//     effects: F1['effects'] &
+//       F2['effects'] &
+//       F3['effects'] &
+//       F4['effects'] &
+//       F5['effects'] &
+//       F6['effects'];
+//     hooks: {
+//       onInit: () => void;
+//       onDestroy: () => void;
+//     };
+//   } & SignalStoreUpdate<
+//     StaticState<
+//       F1['state'] &
+//         F2['state'] &
+//         F3['state'] &
+//         F4['state'] &
+//         F5['state'] &
+//         F6['state']
+//     >
+//   >
+// ) => F7;
 
 type F1Result<F1 extends SignalStoreFeature> = FeatureResult<F1> &
   SignalStoreUpdate<StaticState<F1['state']>>;
@@ -428,20 +440,23 @@ type F6Result<
   >;
 
 export function signalStore<F1 extends SignalStoreFeature>(
-  f1: F1Factory<F1>
+  f1: MergeSignalStoreFeatureFactory<[SignalStoreFeature], F1>
 ): Type<F1Result<F1>>;
 export function signalStore<
   F1 extends SignalStoreFeature,
   F2 extends SignalStoreFeature
->(f1: F1Factory<F1>, f2: F2Factory<F1, F2>): Type<F2Result<F1, F2>>;
+>(
+  f1: MergeSignalStoreFeatureFactory<[SignalStoreFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[F1], F2>
+): Type<F2Result<F1, F2>>;
 export function signalStore<
   F1 extends SignalStoreFeature,
   F2 extends SignalStoreFeature,
   F3 extends SignalStoreFeature
 >(
-  f1: F1Factory<F1>,
-  f2: F2Factory<F1, F2>,
-  f3: F3Factory<F1, F2, F3>
+  f1: MergeSignalStoreFeatureFactory<[SignalStoreFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[F1, F2], F3>
 ): Type<F3Result<F1, F2, F3>>;
 export function signalStore<
   F1 extends SignalStoreFeature,
@@ -449,10 +464,10 @@ export function signalStore<
   F3 extends SignalStoreFeature,
   F4 extends SignalStoreFeature
 >(
-  f1: F1Factory<F1>,
-  f2: F2Factory<F1, F2>,
-  f3: F3Factory<F1, F2, F3>,
-  f4: F4Factory<F1, F2, F3, F4>
+  f1: MergeSignalStoreFeatureFactory<[SignalStoreFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[F1, F2], F3>,
+  f4: MergeSignalStoreFeatureFactory<[F1, F2, F3], F4>
 ): Type<F4Result<F1, F2, F3, F4>>;
 export function signalStore<
   F1 extends SignalStoreFeature,
@@ -461,11 +476,11 @@ export function signalStore<
   F4 extends SignalStoreFeature,
   F5 extends SignalStoreFeature
 >(
-  f1: F1Factory<F1>,
-  f2: F2Factory<F1, F2>,
-  f3: F3Factory<F1, F2, F3>,
-  f4: F4Factory<F1, F2, F3, F4>,
-  f5: F5Factory<F1, F2, F3, F4, F5>
+  f1: MergeSignalStoreFeatureFactory<[SignalStoreFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[F1, F2], F3>,
+  f4: MergeSignalStoreFeatureFactory<[F1, F2, F3], F4>,
+  f5: MergeSignalStoreFeatureFactory<[F1, F2, F3, F4], F5>
 ): Type<F5Result<F1, F2, F3, F4, F5>>;
 export function signalStore<
   F1 extends SignalStoreFeature,
@@ -475,12 +490,18 @@ export function signalStore<
   F5 extends SignalStoreFeature,
   F6 extends SignalStoreFeature
 >(
-  f1: F1Factory<F1>,
-  f2: F2Factory<F1, F2>,
-  f3: F3Factory<F1, F2, F3>,
-  f4: F4Factory<F1, F2, F3, F4>,
-  f5: F5Factory<F1, F2, F3, F4, F5>,
-  f6: F6Factory<F1, F2, F3, F4, F5, F6>
+  // f1: F1Factory<F1>,
+  // f2: F2Factory<F1, F2>,
+  // f3: F3Factory<F1, F2, F3>,
+  // f4: F4Factory<F1, F2, F3, F4>,
+  // f5: F5Factory<F1, F2, F3, F4, F5>,
+  // f6: F6Factory<F1, F2, F3, F4, F5, F6>
+  f1: MergeSignalStoreFeatureFactory<[SignalStoreFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[F1, F2], F3>,
+  f4: MergeSignalStoreFeatureFactory<[F1, F2, F3], F4>,
+  f5: MergeSignalStoreFeatureFactory<[F1, F2, F3, F4], F5>,
+  f6: MergeSignalStoreFeatureFactory<[F1, F2, F3, F4, F5], F6>
 ): Type<F6Result<F1, F2, F3, F4, F5, F6>>;
 
 export function signalStore<F1 extends SignalStoreFeature>(
@@ -675,8 +696,8 @@ export function signalStoreFeature<
   F2 extends SignalStoreFeature,
   RequiredFeature extends SignalStoreFeature = SignalStoreFeature
 >(
-  f1: F2Factory<RequiredFeature, F1>,
-  f2: F3Factory<RequiredFeature, F1, F2>,
+  f1: MergeSignalStoreFeatureFactory<[RequiredFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[RequiredFeature, F1], F2>,
   options?: { requires?: F1Factory<RequiredFeature> }
 ): (
   input: RequiredFeature
@@ -688,9 +709,9 @@ export function signalStoreFeature<
   F3 extends SignalStoreFeature,
   RequiredFeature extends SignalStoreFeature = SignalStoreFeature
 >(
-  f1: F2Factory<RequiredFeature, F1>,
-  f2: F3Factory<RequiredFeature, F1, F2>,
-  f3: F4Factory<RequiredFeature, F1, F2, F3>,
+  f1: MergeSignalStoreFeatureFactory<[RequiredFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[RequiredFeature, F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2], F3>,
   options?: { requires?: F1Factory<RequiredFeature> }
 ): (
   input: RequiredFeature &
@@ -703,10 +724,10 @@ export function signalStoreFeature<
   F4 extends SignalStoreFeature,
   RequiredFeature extends SignalStoreFeature = SignalStoreFeature
 >(
-  f1: F2Factory<RequiredFeature, F1>,
-  f2: F3Factory<RequiredFeature, F1, F2>,
-  f3: F4Factory<RequiredFeature, F1, F2, F3>,
-  f4: F5Factory<RequiredFeature, F1, F2, F3, F4>,
+  f1: MergeSignalStoreFeatureFactory<[RequiredFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[RequiredFeature, F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2], F3>,
+  f4: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2, F3], F4>,
   options?: { requires?: F1Factory<RequiredFeature> }
 ): (
   input: RequiredFeature &
@@ -721,11 +742,11 @@ export function signalStoreFeature<
   F5 extends SignalStoreFeature,
   RequiredFeature extends SignalStoreFeature = SignalStoreFeature
 >(
-  f1: F2Factory<RequiredFeature, F1>,
-  f2: F3Factory<RequiredFeature, F1, F2>,
-  f3: F4Factory<RequiredFeature, F1, F2, F3>,
-  f4: F5Factory<RequiredFeature, F1, F2, F3, F4>,
-  f5: F6Factory<RequiredFeature, F1, F2, F3, F4, F5>,
+  f1: MergeSignalStoreFeatureFactory<[RequiredFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[RequiredFeature, F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2], F3>,
+  f4: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2, F3], F4>,
+  f5: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2, F3, F4], F5>,
   options?: { requires?: F1Factory<RequiredFeature> }
 ): (
   input: RequiredFeature &
@@ -740,12 +761,12 @@ export function signalStoreFeature<
   F6 extends SignalStoreFeature,
   RequiredFeature extends SignalStoreFeature = SignalStoreFeature
 >(
-  f1: F2Factory<RequiredFeature, F1>,
-  f2: F3Factory<RequiredFeature, F1, F2>,
-  f3: F4Factory<RequiredFeature, F1, F2, F3>,
-  f4: F5Factory<RequiredFeature, F1, F2, F3, F4>,
-  f5: F6Factory<RequiredFeature, F1, F2, F3, F4, F5>,
-  f6: F7Factory<RequiredFeature, F1, F2, F3, F4, F5, F6>,
+  f1: MergeSignalStoreFeatureFactory<[RequiredFeature], F1>,
+  f2: MergeSignalStoreFeatureFactory<[RequiredFeature, F1], F2>,
+  f3: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2], F3>,
+  f4: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2, F3], F4>,
+  f5: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2, F3, F4], F5>,
+  f6: MergeSignalStoreFeatureFactory<[RequiredFeature, F1, F2, F3, F4, F5], F6>,
   options?: { requires?: F1Factory<RequiredFeature> }
 ): (
   input: RequiredFeature &
@@ -754,8 +775,6 @@ export function signalStoreFeature<
 export function signalStoreFeature<T extends Array<SignalStoreFeatureFactory>>(
   ...args: T
 ) {
-  console.log({ args });
-
   return (input: any) => {
     const { update, rootFeature } = joinFeatures(args);
     return { ...rootFeature, update };

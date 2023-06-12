@@ -27,16 +27,11 @@ const initialState: UsersState = {
   pageSize: 5,
 };
 
-const withLoadEntitiesEffect1 = withLoadEntitiesEffect<User>(() =>
-  from(inject(UsersService).getAll())
-);
-const withState1 = withState(initialState);
-const withLoadEntities1 = withLoadEntities<User>();
 export const UsersStore = signalStore(
   { providedIn: 'root' },
-  withState1,
-  withLoadEntities1,
-  withLoadEntitiesEffect1
+  withState(initialState),
+  withLoadEntities<User>(),
+  withLoadEntitiesEffect<User>(() => from(inject(UsersService).getAll()))
   // withHooks({
   //   // re-fetch users every time when filter signal changes
   //   onInit: ({ loadEntities }) => loadEntities(),
