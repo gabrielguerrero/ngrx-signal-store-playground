@@ -23,7 +23,7 @@ export type SignalStoreFeatureFactory = (
   feature: SignalStoreFeature & SignalStoreUpdate<any>
 ) => SignalStoreFeature;
 
-export type SignalState<StaticState extends Record<string, unknown>> = {
+export type SignalState<StaticState extends Record<string, any>> = {
   [Key in keyof StaticState]: Signal<StaticState[Key]>;
 };
 

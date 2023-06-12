@@ -12,6 +12,7 @@ import { debounceTime, from, map, of, pipe, switchMap, tap } from 'rxjs';
 import { UsersService } from './users.service';
 import { User } from './user.model';
 import { withLoadEntities, withLoadEntitiesEffect } from './load-entities';
+import { withLocalFilterEntities } from './filter-entities';
 
 type UsersState = {
   users: User[];
@@ -31,11 +32,17 @@ export const UsersStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
   withLoadEntities<User>(),
-  withLoadEntitiesEffect<User>(() => from(inject(UsersService).getAll()))
-  // withHooks({
-  //   // re-fetch users every time when filter signal changes
-  //   onInit: ({ loadEntities }) => loadEntities(),
-  // })
+  // TODO check if we can override the entitiesList?
+  withLocalFilterEntities<User, { name: string }>({
+    filterFn: (filter, entity) =>
+      !filter?.name ||
+      entity?.name.toLowerCase().includes(filter?.name.toLowerCase()),
+  }),
+  withLoadEntitiesEffect(({}) => from(inject(UsersService).getAll())),
+  withHooks({
+    // re-fetch users every time when filter signal changes
+    onInit: ({ loadEntities }) => loadEntities(),
+  })
   // withComputed(({ query, pageSize }) => ({
   //   filter: computed(() => ({ query: query(), pageSize: pageSize() })),
   // })),

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsersStore } from './users.store';
@@ -31,6 +31,9 @@ import { UsersStore } from './users.store';
     <!--    </div>-->
   `,
 })
-export class UsersComponent {
+export class UsersComponent implements OnInit {
   readonly usersStore = inject(UsersStore);
+  ngOnInit() {
+    console.log('setAll', this.usersStore.setAll);
+  }
 }
