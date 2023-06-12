@@ -11,7 +11,7 @@ import { computed, inject } from '@angular/core';
 import { debounceTime, from, map, of, pipe, switchMap, tap } from 'rxjs';
 import { UsersService } from './users.service';
 import { User } from './user.model';
-import { withLoadEntities } from './load-entities';
+import { withLoadEntities, withLoadEntitiesEffect } from './load-entities';
 
 type UsersState = {
   users: User[];
@@ -27,14 +27,20 @@ const initialState: UsersState = {
   pageSize: 5,
 };
 
+const withLoadEntitiesEffect1 = withLoadEntitiesEffect<User>(() =>
+  from(inject(UsersService).getAll())
+);
+const withState1 = withState(initialState);
+const withLoadEntities1 = withLoadEntities<User>();
 export const UsersStore = signalStore(
   { providedIn: 'root' },
-  withState(initialState),
-  withLoadEntities<User>(() => from(inject(UsersService).getAll())),
-  withHooks({
-    // re-fetch users every time when filter signal changes
-    onInit: ({ loadEntities }) => loadEntities(),
-  })
+  withState1,
+  withLoadEntities1,
+  withLoadEntitiesEffect1
+  // withHooks({
+  //   // re-fetch users every time when filter signal changes
+  //   onInit: ({ loadEntities }) => loadEntities(),
+  // })
   // withComputed(({ query, pageSize }) => ({
   //   filter: computed(() => ({ query: query(), pageSize: pageSize() })),
   // })),

@@ -6,14 +6,18 @@ import {
   withUpdaters,
 } from '@ngrx/signals';
 
-import { EntityState, setLoading, withCallState } from './call-state';
+import {
+  CallState,
+  EntityState,
+  setLoading,
+  withCallState,
+} from './call-state';
 import { exhaustMap, Observable, pipe, tap } from 'rxjs';
 import { signalStoreFeature } from '../../lib/signal-store';
-import { computed } from '@angular/core';
+import { computed, Signal } from '@angular/core';
 
-export function withLoadEntities<Entity extends { id: string | number }>(
-  getAll: () => Observable<Entity[]> // or: Promise<Entity[]>
-) {
+export function withLoadEntities<Entity extends { id: string | number }>() {
+  // getAll: () => Observable<Entity[]> // or: Promise<Entity[]>
   const initialState: EntityState<Entity> = { entities: {}, ids: [] };
   return signalStoreFeature(
     withCallState(),
@@ -34,8 +38,66 @@ export function withLoadEntities<Entity extends { id: string | number }>(
           ids: entities.map((e) => e.id as any),
           entities: toMap(entities),
         }),
-    })),
-    withEffects(({ setLoaded, setAll }) => ({
+    }))
+    // withEffects(({ setLoaded, setAll }) => ({
+    //   loadEntities: rxEffect<void>(
+    //     pipe(
+    //       tap(() => setLoading()),
+    //       exhaustMap(() => getAll()),
+    //       tap((entities) => {
+    //         setAll(entities);
+    //         setLoaded();
+    //       })
+    //     )
+    //   ),
+    // }))
+  );
+}
+
+export function withLoadEntitiesEffect<
+  Entity extends { id: string | number }
+  // State extends Record<string, Signal<any>>,
+  // Computed extends Record<string, Signal<any>>,
+  // Updaters extends Record<string, (...args: any[]) => void>,
+  // PreviousEffects extends Record<string, (...args: any[]) => any>,
+  // Effects extends Record<string, (...args: any[]) => any>
+>(
+  getAll: () => Observable<Entity[]> // or: Promise<Entity[]>
+) {
+  // const initialState: EntityState<Entity> = { entities: {}, ids: [] };
+  //   <{
+  //   state: EntityState<Entity> & { callState: CallState },
+  //   computed?: {};
+  //   updaters?: {};
+  //   effects?: {};
+  // }>
+  // type S = ReturnType<ReturnType<typeof withLoadEntities>>;
+  // const s = {} as S;
+  // type x = typeof withState<EntityState<Entity>>(initialState);
+  // s.state.entities;
+  var signalStoreFeature1 = signalStoreFeature(
+    // withCallState(),
+    // withState<EntityState<Entity>>(initialState),
+    // withComputed(({ entities, ids }) => {
+    //   return {
+    //     entitiesList: computed(() => {
+    //       const map = entities();
+    //       return ids().map((id) => {
+    //         return map[id]!;
+    //       });
+    //     }),
+    //   };
+    // }),
+    // withUpdaters(({ update }) => ({
+    //   setAll: (entities: Entity[]) =>
+    //     update({
+    //       ids: entities.map((e) => e.id as any),
+    //       entities: toMap(entities),
+    //     }),
+    // })),
+    // withLoadEntities<Entity>(),
+    // noopFeature(withLoadEntities<Entity>()),
+    withEffects(({ setAll, setLoaded }) => ({
       loadEntities: rxEffect<void>(
         pipe(
           tap(() => setLoading()),
@@ -46,8 +108,12 @@ export function withLoadEntities<Entity extends { id: string | number }>(
           })
         )
       ),
-    }))
+    })),
+    {
+      requires: withLoadEntities<Entity>(),
+    }
   );
+  return signalStoreFeature1;
 }
 
 export function toMap<T extends { id: string | number }>(
