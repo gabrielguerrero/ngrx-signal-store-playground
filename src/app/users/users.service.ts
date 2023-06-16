@@ -9,6 +9,9 @@ const usersMock: User[] = [
   { id: 4, name: 'Mike' },
   { id: 5, name: 'Tim' },
   { id: 6, name: 'Gabs' },
+  { id: 7, name: 'Minko' },
+  { id: 8, name: 'Jeremy' },
+  { id: 9, name: 'Mike' },
 ];
 
 @Injectable({ providedIn: 'root' })

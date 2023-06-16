@@ -1,40 +1,29 @@
 import {
-  withEffects,
   rxEffect,
-  withState,
-  withComputed,
-  withUpdaters,
   SignalStoreUpdate,
+  withEffects,
+  withUpdaters,
 } from '@ngrx/signals';
 
-import { EntityState, setLoading, withCallState } from './call-state';
+import {
+  EntityState,
+  setLoading,
+  withCallState,
+} from '../../../app/users/call-state';
 import { exhaustMap, Observable, pipe, tap } from 'rxjs';
-import { signalStoreFeature } from '../../lib/signal-store';
-import { computed, Signal } from '@angular/core';
-import { SignalState, StaticState } from '../../lib/models';
+import { signalStoreFeature } from '../../signal-store';
+import { Signal } from '@angular/core';
+import { StaticState } from '../../models';
+import { withEntities } from './with-entities';
 
-export function withLoadEntities<Entity extends { id: string | number }>() {
+export function withLoadEntities<Entity>() {
   // getAll: () => Observable<Entity[]> // or: Promise<Entity[]>
   const initialState: EntityState<Entity> = { entities: {}, ids: [] };
   return signalStoreFeature(
     withCallState(),
-    withState<EntityState<Entity>>(initialState),
-    withComputed(({ entities, ids }) => {
-      return {
-        entitiesList: computed(() => {
-          const map = entities();
-          return ids().map((id) => {
-            return map[id]!;
-          });
-        }),
-      };
-    }),
-    withUpdaters(({ update }) => ({
-      setAll: (entities: Entity[]) =>
-        update({
-          ids: entities.map((e) => e.id as any),
-          entities: toMap(entities),
-        }),
+    withEntities<Entity>(),
+    withUpdaters(({ update, setAll }) => ({
+      setResult: (entities: Entity[]) => setAll(entities),
     }))
     // withEffects(({ setLoaded, setAll }) => ({
     //   loadEntities: rxEffect<void>(
@@ -101,14 +90,4 @@ export function withLoadEntitiesEffect<
         ),
       }))
     )(feature as any);
-}
-
-export function toMap<T extends { id: string | number }>(
-  a: Array<T>,
-  selectId: (item: T) => string | number = (item) => item.id
-) {
-  return a.reduce((acum: { [key: string]: T }, value) => {
-    acum[selectId(value)] = value;
-    return acum;
-  }, {}) as { [key: string]: T };
 }

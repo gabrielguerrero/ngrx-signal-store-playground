@@ -2,38 +2,58 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsersStore } from './users.store';
+import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatListModule } from '@angular/material/list';
+import { MatCardModule } from '@angular/material/card';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatInputModule,
+    MatPaginatorModule,
+    MatListModule,
+    MatCardModule,
+  ],
   template: `
-    <h1>Users</h1>
+    <mat-card [style]="{margin: '20px'}">
+      <mat-card-header>
+        <mat-card-title>Users</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-form-field [appearance]="'outline'">
+          <mat-label>Search</mat-label>
+          <input
+            matInput
+            placeholder="Name"
+            [ngModel]="usersStore.filter().name"
+            (ngModelChange)="
+          usersStore.filterEntities({ filter: { name: $event } })
+        "
+          />
+        </mat-form-field>
 
-    <!--    <input-->
-    <!--      placeholder="Search..."-->
-    <!--      [ngModel]="usersStore.query()"-->
-    <!--      (ngModelChange)="usersStore.update({ query: $event })"-->
-    <!--    />-->
-    <span *ngIf="usersStore.loading()">Loading ...</span>
+        <span *ngIf="usersStore.loading()">Loading ...</span>
 
-    <ul>
-      <li *ngFor="let user of usersStore.entitiesList()">{{ user?.name }}</li>
-    </ul>
+        <mat-list>
+          <mat-list-item *ngFor="let user of usersStore.entitiesList()">{{ user?.name }}</mat-list-item>
+        </mat-list>
 
-    <!--    <div>-->
-    <!--      <button-->
-    <!--        *ngFor="let pageSize of [1, 3, 5]"-->
-    <!--        [class.active]="pageSize === usersStore.pageSize()"-->
-    <!--        (click)="usersStore.update({ pageSize })"-->
-    <!--      >-->
-    <!--        {{ pageSize }}-->
-    <!--      </button>-->
-    <!--    </div>-->
+        <mat-paginator
+          [pageSize]="usersStore.entitiesPageInfo().pageSize"
+          [pageIndex]="usersStore.entitiesPageInfo().pageIndex"
+          [length]="usersStore.entitiesPageInfo().total"
+          (page)="usersStore.loadEntitiesPage({ pageIndex: $event.pageIndex })"
+        />
+      </mat-card-content>
+    </mat-card>
   `,
 })
 export class UsersComponent implements OnInit {
   readonly usersStore = inject(UsersStore);
   ngOnInit() {
-    console.log('setAll', this.usersStore.setAll);
+    // console.log('setAll', this.usersStore.setAll);
   }
 }

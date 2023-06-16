@@ -11,8 +11,12 @@ import { computed, inject } from '@angular/core';
 import { debounceTime, from, map, of, pipe, switchMap, tap } from 'rxjs';
 import { UsersService } from './users.service';
 import { User } from './user.model';
-import { withLoadEntities, withLoadEntitiesEffect } from './load-entities';
-import { withLocalFilterEntities } from './filter-entities';
+import {
+  withLoadEntities,
+  withLoadEntitiesEffect,
+} from '../../lib/features/entities/with-load-entities';
+import { withEntitiesLocalFilter } from '../../lib/features/entities/with-entities-filter';
+import { withEntitiesLocalPagination } from '../../lib/features/entities/with-entities-local-pagination';
 
 type UsersState = {
   users: User[];
@@ -32,49 +36,15 @@ export const UsersStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
   withLoadEntities<User>(),
-  // TODO check if we can override the entitiesList?
-  withLocalFilterEntities<User, { name: string }>({
-    filterFn: (filter, entity) =>
+  withEntitiesLocalFilter<User, { name?: string }>({
+    defaultFilter: {},
+    filterFn: (entity, filter) =>
       !filter?.name ||
       entity?.name.toLowerCase().includes(filter?.name.toLowerCase()),
   }),
+  withEntitiesLocalPagination<User>({ pageSize: 5 }),
   withLoadEntitiesEffect(({}) => from(inject(UsersService).getAll())),
   withHooks({
-    // re-fetch users every time when filter signal changes
     onInit: ({ loadEntities }) => loadEntities(),
   })
-  // withComputed(({ query, pageSize }) => ({
-  //   filter: computed(() => ({ query: query(), pageSize: pageSize() })),
-  // })),
-  // larger features can be moved to a separate function and/or file
-  // withUsersEffects()
-  // withHooks({
-  //     // re-fetch users every time when filter signal changes
-  //     onInit: ({ loadUsersByFilter, filter }) => loadUsersByFilter(filter),
-  //   })
 );
-
-// function withUsersEffects() {
-//   return withEffects(
-//     (
-//       { update }: SignalStoreUpdate<UsersState>,
-//       { getByFilter, getAll } = inject(UsersService)
-//     ) => ({
-//       // We can use `rxEffect` to create side effects by using RxJS APIs.
-//       // However, that's not mandatory. We can also create effects without RxJS:
-//       async loadAllUsers() {
-//         update({ loading: true });
-//         const users = await getAll();
-//         update({ users, loading: false });
-//       },
-//       loadUsersByFilter: rxEffect<{ query: string; pageSize: number }>(
-//         pipe(
-//           debounceTime(300),
-//           tap(() => update({ loading: true })),
-//           switchMap((filter) => getByFilter(filter)),
-//           tap((users) => update({ users, loading: false }))
-//         )
-//       ),
-//     })
-//   );
-// }
