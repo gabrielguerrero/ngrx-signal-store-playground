@@ -14,7 +14,8 @@ import * as test2 from '../tests/test2';
   imports: [RouterOutlet, RouterLink, JsonPipe],
   template: `
     <div>
-      <a routerLink="/counter">Counter</a> | <a routerLink="/users">Users</a> |
+      <a routerLink="/counter">Counter</a> | <a routerLink="/users">Users</a>|
+      <a routerLink="/users2">Users2</a> |
       <a routerLink="/todos">Todos</a>
     </div>
     <router-outlet></router-outlet>

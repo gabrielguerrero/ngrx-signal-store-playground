@@ -1,37 +1,38 @@
-import { signalStoreFeature } from '../../signal-store';
 import { withEntities } from './with-entities';
 import {
-  withComputed,
+  signalStoreFeatureFactory,
   withHooks,
+  withMethods,
+  withSignals,
   withState,
-  withUpdaters,
 } from '@ngrx/signals';
 import { computed, effect } from '@angular/core';
-import { SignalState } from '../../models';
 import type { EntitiesFilterState } from './with-entities-filter';
+import { SignalState } from '../../signal-state';
 
-export interface EntitiesPaginationLocalState {
+export type EntitiesPaginationLocalState = {
   pagination: {
     currentPage: number;
     pageSize: number;
   };
-}
+};
 
 export function withEntitiesLocalPagination<Entity>({
   pageSize = 10,
   currentPage = 0,
 }) {
-  return signalStoreFeature(
-    {
-      requires: withEntities<Entity>(),
-    },
+  const withEntities1 = withEntities<Entity>();
+  const paginationFeature =
+    signalStoreFeatureFactory<ReturnType<typeof withEntities1>>();
+
+  return paginationFeature(
     withState<EntitiesPaginationLocalState>({
       pagination: {
         pageSize,
         currentPage,
       },
     }),
-    withComputed(({ entitiesList, pagination }) => {
+    withSignals(({ entitiesList, pagination }) => {
       // TODO problem if a user puts the filter after the pagination, the filter overriden entitiesList
       // will not work well
       const entitiesCurrentPageList = computed(() => {
@@ -65,9 +66,9 @@ export function withEntitiesLocalPagination<Entity>({
         entitiesPageInfo,
       };
     }),
-    withUpdaters(({ pagination, update }) => ({
+    withMethods(({ pagination, $update }) => ({
       loadEntitiesPage: ({ pageIndex }: { pageIndex: number }) => {
-        update({
+        $update({
           pagination: {
             ...pagination(),
             currentPage: pageIndex,

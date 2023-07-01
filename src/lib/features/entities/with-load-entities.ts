@@ -1,8 +1,8 @@
 import {
   rxEffect,
-  SignalStoreUpdate,
-  withEffects,
-  withUpdaters,
+  signalStoreFeatureFactory,
+  withMethods,
+  withState,
 } from '@ngrx/signals';
 
 import {
@@ -11,20 +11,24 @@ import {
   withCallState,
 } from '../../../app/users/call-state';
 import { exhaustMap, Observable, pipe, tap } from 'rxjs';
-import { signalStoreFeature } from '../../signal-store';
 import { Signal } from '@angular/core';
-import { StaticState } from '../../models';
 import { withEntities } from './with-entities';
+import { SignalStateUpdate } from '../../signal-state-update';
+import {
+  SignalStoreFeatureInput,
+  SignalStoreSlices,
+} from '../../signal-store-feature';
+import { withCallState as withCallState2 } from '../../../app/shared/call-state.feature';
 
 export function withLoadEntities<Entity>() {
   // getAll: () => Observable<Entity[]> // or: Promise<Entity[]>
-  const initialState: EntityState<Entity> = { entities: {}, ids: [] };
-  return signalStoreFeature(
+  return signalStoreFeatureFactory()(
     withCallState(),
     withEntities<Entity>(),
-    withUpdaters(({ update, setAll }) => ({
+    withMethods(({ $update, setAll }) => ({
       setResult: (entities: Entity[]) => setAll(entities),
     }))
+
     // withEffects(({ setLoaded, setAll }) => ({
     //   loadEntities: rxEffect<void>(
     //     pipe(
@@ -41,45 +45,43 @@ export function withLoadEntities<Entity>() {
 }
 
 export function withLoadEntitiesEffect<
-  State extends Record<string, Signal<any>>,
-  Computed extends Record<string, Signal<any>>,
-  Updaters extends Record<string, (...args: any[]) => void>,
-  PreviousEffects extends Record<string, (...args: any[]) => any>,
+  State extends Record<string, unknown>,
+  Signals extends Record<string, Signal<any>>,
+  PreviousMethods extends Record<string, (...args: any[]) => any>,
+  Methods extends Record<string, (...args: any[]) => any>,
   Entity extends { id: string | number }
 >(
   getAll: (
-    input: State &
-      Computed &
-      Updaters &
-      PreviousEffects &
-      SignalStoreUpdate<StaticState<State>>
+    input: SignalStateUpdate<State> &
+      SignalStoreSlices<State> &
+      Signals &
+      PreviousMethods
   ) => Observable<Entity[]> // or: Promise<Entity[]>
 ) {
   return (
-    feature: {
+    featureInput: SignalStoreFeatureInput<{
       state: State;
-      computed: Computed;
-      updaters: Updaters;
-      effects: PreviousEffects;
-    } & SignalStoreUpdate<StaticState<State>>
-  ) =>
+      signals: Signals;
+      methods: PreviousMethods;
+    }>
+  ) => {
     // We could have not use signalStoreFeature to implement this hook and use the feature param types to restrict the
     // use and unsure a withLoadEntities is before but the type will be more complicated
-    signalStoreFeature(
-      {
-        requires: withLoadEntities<Entity>(),
-      },
-      withEffects(({ setAll, setLoaded }) => ({
+    const withEntities1 = withLoadEntities<Entity>();
+    const loadEntitiesFeature =
+      signalStoreFeatureFactory<ReturnType<typeof withEntities1>>();
+    const loadEntitiesFeature1 = loadEntitiesFeature(
+      withState({ a: 1 }), // test this was breaking previous implementation of signalStoreFeatureFactory
+      withMethods(({ setAll, setLoaded }) => ({
         loadEntities: rxEffect<void>(
           pipe(
             tap(() => setLoading()),
             exhaustMap(() =>
               getAll({
-                ...feature.state,
-                ...feature.computed,
-                ...feature.updaters,
-                ...feature.effects,
-                update: feature.update,
+                $update: featureInput.$update,
+                ...featureInput.slices,
+                ...featureInput.signals,
+                ...featureInput.methods,
               })
             ),
             tap((entities) => {
@@ -89,5 +91,61 @@ export function withLoadEntitiesEffect<
           )
         ),
       }))
-    )(feature as any);
+    );
+    return loadEntitiesFeature1(featureInput as any);
+  };
 }
+
+// export function withLoadEntitiesEffect2<
+//   State extends Record<string, unknown>,
+//   Signals extends Record<string, Signal<any>>,
+//   PreviousMethods extends Record<string, (...args: any[]) => any>,
+//   Methods extends Record<string, (...args: any[]) => any>,
+//   Entity extends { id: string | number }
+// >(
+//   getAll: (
+//     input: SignalStateUpdate<State> &
+//       SignalStoreSlices<State> &
+//       Signals &
+//       PreviousMethods
+//   ) => Observable<Entity[]> // or: Promise<Entity[]>
+// ) {
+//   return (
+//     featureInput: SignalStoreFeatureInput<{
+//       state: State;
+//       signals: Signals;
+//       methods: PreviousMethods;
+//     }>
+//   ) => {
+//     // We could have not use signalStoreFeature to implement this hook and use the feature param types to restrict the
+//     // use and unsure a withLoadEntities is before but the type will be more complicated
+//     const withEntities1 = withLoadEntities<Entity>();
+//     const loadEntitiesFeature =
+//       signalStoreFeatureFactory<ReturnType<typeof withEntities1>>();
+//     const loadEntitiesFeature1 = signalStoreFeature({
+//       requires: withLoadEntities<Entity>();
+//     },
+//       withState({ a: 1 }), // test this was breaking previous implementation of signalStoreFeatureFactory
+//       withMethods(({ setAll, setLoaded }) => ({
+//         loadEntities: rxEffect<void>(
+//           pipe(
+//             tap(() => setLoading()),
+//             exhaustMap(() =>
+//               getAll({
+//                 $update: featureInput.$update,
+//                 ...featureInput.slices,
+//                 ...featureInput.signals,
+//                 ...featureInput.methods,
+//               })
+//             ),
+//             tap((entities) => {
+//               setAll(entities);
+//               setLoaded();
+//             })
+//           )
+//         ),
+//       }))
+//     );
+//     return loadEntitiesFeature1(featureInput as any);
+//   };
+// }

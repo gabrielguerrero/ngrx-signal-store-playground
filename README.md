@@ -288,6 +288,7 @@ const UsersStore = signalStore(
   withState<UsersState>({ users: [], loading: false }),
   // we can access the '$update' method via factory input
   withMethods(({ $update, users }) => {
+    
     // services/tokens can be injected here
     const usersService = inject(UsersService);
 

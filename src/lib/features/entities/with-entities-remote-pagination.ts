@@ -1,20 +1,18 @@
-import { signalStoreFeature } from '../../signal-store';
-import { withEntities } from './with-entities';
 import {
   rxEffect,
-  withComputed,
-  withEffects,
+  signalStoreFeatureFactory,
   withHooks,
+  withMethods,
+  withSignals,
   withState,
-  withUpdaters,
 } from '@ngrx/signals';
 import { computed, effect } from '@angular/core';
 import { pipe, tap } from 'rxjs';
 import { withLoadEntities } from './with-load-entities';
-import { SignalState } from '../../models';
 import { EntitiesFilterState } from './with-entities-filter';
+import { SignalState } from '../../signal-state';
 
-export interface EntitiesPaginationRemoteState {
+export type EntitiesPaginationRemoteState = {
   pagination: {
     currentPage: number;
     requestPage: number;
@@ -26,17 +24,17 @@ export interface EntitiesPaginationRemoteState {
       end: number;
     };
   };
-}
+};
 
 export function withEntitiesRemotePagination<Entity>({
   pageSize = 10,
   currentPage = 0,
   pagesToCache = 3,
 }) {
-  return signalStoreFeature(
-    {
-      requires: withLoadEntities<Entity>(),
-    },
+  const withEntities1 = withLoadEntities<Entity>();
+  const paginationFeature =
+    signalStoreFeatureFactory<ReturnType<typeof withEntities1>>();
+  return paginationFeature(
     withState<EntitiesPaginationRemoteState>({
       pagination: {
         pageSize,
@@ -50,7 +48,7 @@ export function withEntitiesRemotePagination<Entity>({
       },
     }),
 
-    withComputed(({ entitiesList, pagination }) => {
+    withSignals(({ entitiesList, pagination }) => {
       const entitiesCurrentPageList = computed(() => {
         const page = pagination().currentPage;
         const startIndex =
@@ -89,35 +87,33 @@ export function withEntitiesRemotePagination<Entity>({
         entitiesPagedRequest,
       };
     }),
-    withUpdaters(({ update, pagination, setAll, entitiesList }) => ({
-      setResult: (entities: Entity[], total: number) => {
-        const isPreloadNextPages =
-          pagination().currentPage + 1 === pagination().requestPage;
-
-        const start = pagination().currentPage * pagination().pageSize;
-        const newEntities = isPreloadNextPages
-          ? [...entitiesList(), ...entities]
-          : entities;
-        setAll(newEntities);
-        update({
-          pagination: {
-            ...pagination(),
-            total,
-            cache: {
-              ...pagination().cache,
-              start,
-              end: start + entities.length,
-            },
-          },
-        });
-      },
-    })),
-    withEffects(({ update, pagination, setLoading }) => {
+    withMethods(({ $update, setLoading, pagination, setAll, entitiesList }) => {
       return {
+        setResult: (entities: Entity[], total: number) => {
+          const isPreloadNextPages =
+            pagination().currentPage + 1 === pagination().requestPage;
+
+          const start = pagination().currentPage * pagination().pageSize;
+          const newEntities = isPreloadNextPages
+            ? [...entitiesList(), ...entities]
+            : entities;
+          setAll(newEntities);
+          $update({
+            pagination: {
+              ...pagination(),
+              total,
+              cache: {
+                ...pagination().cache,
+                start,
+                end: start + entities.length,
+              },
+            },
+          });
+        },
         loadEntitiesPage: rxEffect<{ index: number; forceLoad?: boolean }>(
           pipe(
             tap(({ index, forceLoad }) => {
-              update({
+              $update({
                 pagination: {
                   ...pagination(),
                   currentPage: index,
@@ -127,7 +123,7 @@ export function withEntitiesRemotePagination<Entity>({
               if (isEntitiesPageInCache(index, pagination()) && !forceLoad) {
                 if (!isEntitiesPageInCache(index + 1, pagination())) {
                   // preload next page
-                  update({
+                  $update({
                     pagination: {
                       ...pagination(),
                       currentPage: index,
@@ -146,7 +142,7 @@ export function withEntitiesRemotePagination<Entity>({
     }),
     withHooks({
       onInit: (input) => {
-        const { update } = input;
+        const { $update } = input;
         // we need reset the currentPage to 0 when the filter changes, not sure if I'm happy with this solution
         if ('filter' in input) {
           const { filter } = input as unknown as SignalState<
@@ -157,7 +153,7 @@ export function withEntitiesRemotePagination<Entity>({
             () => {
               if (previousFilter !== filter()) {
                 previousFilter = filter();
-                update({
+                $update({
                   pagination: {
                     ...input.pagination(),
                     currentPage: 0,
@@ -173,18 +169,6 @@ export function withEntitiesRemotePagination<Entity>({
     })
     // TODO pagination effects
   );
-}
-
-function setEntitiesPage(
-  state: EntitiesPaginationRemoteState['pagination'],
-  currentPageIndex: number,
-  requestPageIndex = currentPageIndex
-) {
-  return {
-    ...state,
-    currentPage: currentPageIndex,
-    requestPage: requestPageIndex,
-  };
 }
 
 function isEntitiesPageInCache(
