@@ -19,6 +19,7 @@ import {
   timer,
 } from 'rxjs';
 import { SignalStateUpdate } from '../../signal-state-update';
+import { signalStoreFeature } from '../../signal-store-feature';
 
 export function withEntitiesLocalFilter<
   Entity extends { id: string | number },
@@ -30,7 +31,7 @@ export function withEntitiesLocalFilter<
   filterFn: (entity: Entity, filter?: Filter) => boolean;
   defaultFilter: Filter;
 }) {
-  // TODO throw error if paginaton trait is present before this one
+  // TODO throw error if pagination trait is present before this one
   const withEntities1 = withEntities<Entity>();
   const filterFeature =
     signalStoreFeatureFactory<ReturnType<typeof withEntities1>>();
@@ -58,6 +59,31 @@ export function withEntitiesLocalFilter<
 }
 
 export function withEntitiesRemoteFilter<Entity, Filter>({
+  defaultFilter,
+}: {
+  defaultFilter: Filter;
+}) {
+  return signalStoreFeature(
+    {
+      input: withLoadEntities<Entity>(),
+    },
+    withState<{ filter: Filter }>({ filter: defaultFilter }),
+    withMethods(({ $update, setLoading, filter }) => ({
+      filterEntities: rxEffect<{
+        filter: Filter;
+        debounce?: number;
+        patch?: boolean;
+        forceLoad?: boolean;
+      }>(
+        pipe(
+          debounceFilterPipe(filter, $update),
+          tap(() => setLoading())
+        )
+      ),
+    }))
+  );
+}
+export function withEntitiesRemoteFilterOld<Entity, Filter>({
   defaultFilter,
 }: {
   defaultFilter: Filter;

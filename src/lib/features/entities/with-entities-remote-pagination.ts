@@ -11,6 +11,7 @@ import { pipe, tap } from 'rxjs';
 import { withLoadEntities } from './with-load-entities';
 import { EntitiesFilterState } from './with-entities-filter';
 import { SignalState } from '../../signal-state';
+import { signalStoreFeature } from '../../signal-store-feature';
 
 export type EntitiesPaginationRemoteState = {
   pagination: {
@@ -31,10 +32,10 @@ export function withEntitiesRemotePagination<Entity>({
   currentPage = 0,
   pagesToCache = 3,
 }) {
-  const withEntities1 = withLoadEntities<Entity>();
-  const paginationFeature =
-    signalStoreFeatureFactory<ReturnType<typeof withEntities1>>();
-  return paginationFeature(
+  return signalStoreFeature(
+    {
+      input: withLoadEntities<Entity>(),
+    },
     withState<EntitiesPaginationRemoteState>({
       pagination: {
         pageSize,
@@ -167,7 +168,6 @@ export function withEntitiesRemotePagination<Entity>({
         }
       },
     })
-    // TODO pagination effects
   );
 }
 

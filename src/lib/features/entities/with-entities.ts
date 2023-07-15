@@ -14,7 +14,7 @@ export type EntityState<T> = {
   entities: Dictionary<T>;
 };
 
-export function withEntities2<Entity>({
+export function withEntitiesOld<Entity>({
   selectId = (entity: Entity) => (entity as any).id,
 }: {
   selectId?: (entity: Entity) => string | number;
@@ -51,17 +51,6 @@ export function withEntities<Entity>({
 } = {}) {
   const initialState: EntityState<Entity> = { entities: {}, ids: [] };
   return signalStoreFeature(
-    // {
-    //   input: withState<EntityState<Entity>>(initialState),
-    //   // input: {
-    //   //   state: type<EntityState<Entity>>(),
-    //   //   signals: type<{ z: Signal<number> }>(),
-    //   // },
-    //   // input: type<{
-    //   //   state: EntityState<Entity>;
-    //   //   signals: { z: Signal<number> };
-    //   // }>(),
-    // },
     withState<EntityState<Entity>>(initialState),
     withSignals(({ entities, ids }) => {
       return {
