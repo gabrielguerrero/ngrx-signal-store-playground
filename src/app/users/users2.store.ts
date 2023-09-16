@@ -30,12 +30,9 @@ const initialState: UsersState = {
 
 export const Users2Store = signalStore(
   { providedIn: 'root' },
-  // withState(initialState),
-  // withCallState()
-  // withEntities<User>()
   withLoadEntities<User>(),
-  withEntitiesLocalFilter<User, { name?: string }>({
-    defaultFilter: {},
+  withEntitiesLocalFilter<User, { name: string }>({
+    defaultFilter: { name: '' },
     filterFn: (entity, filter) =>
       !filter?.name ||
       entity?.name.toLowerCase().includes(filter?.name.toLowerCase()),
@@ -50,8 +47,8 @@ export const Users2Store = signalStore(
 export const Users3Store = signalStore(
   { providedIn: 'root' },
   withLoadEntities<User>(),
-  withEntitiesRemoteFilter<User, { name?: string }>({
-    defaultFilter: {},
+  withEntitiesRemoteFilter<User, { name: string }>({
+    defaultFilter: { name: '' },
   }),
   withEntitiesRemotePagination<User>({ pageSize: 5 }),
   withLoadEntitiesEffect(({ filter, pagination }) =>

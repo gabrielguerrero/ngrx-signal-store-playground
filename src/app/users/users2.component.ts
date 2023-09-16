@@ -55,6 +55,7 @@ import { Users2Store } from './users2.store';
 export class Users2Component implements OnInit {
   readonly usersStore = inject(Users2Store);
   ngOnInit() {
+    // this.usersStore.
     // console.log('setAll', this.usersStore.setAll);
   }
 }

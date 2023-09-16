@@ -1,6 +1,6 @@
 import {
-  rxEffect,
-  signalStoreFeatureFactory,
+  rxMethod,
+  type,
   withHooks,
   withMethods,
   withSignals,
@@ -10,15 +10,15 @@ import { computed, effect } from '@angular/core';
 import { pipe, tap } from 'rxjs';
 import { withLoadEntities } from './with-load-entities';
 import { EntitiesFilterState } from './with-entities-filter';
-import { SignalState } from '../../signal-state';
 import { signalStoreFeature } from '../../signal-store-feature';
+import { SignalState } from '../../signal-state-models';
 
 export type EntitiesPaginationRemoteState = {
   pagination: {
     currentPage: number;
     requestPage: number;
     pageSize: number;
-    total?: number;
+    total: number | undefined;
     pagesToCache: number;
     cache: {
       start: number;
@@ -32,16 +32,16 @@ export function withEntitiesRemotePagination<Entity>({
   currentPage = 0,
   pagesToCache = 3,
 }) {
+  const withEntities1 = withLoadEntities<Entity>();
   return signalStoreFeature(
-    {
-      input: withLoadEntities<Entity>(),
-    },
+    type<ReturnType<typeof withEntities1>>(),
     withState<EntitiesPaginationRemoteState>({
       pagination: {
         pageSize,
         currentPage,
         requestPage: currentPage,
         pagesToCache,
+        total: undefined,
         cache: {
           start: 0,
           end: 0,
@@ -111,7 +111,7 @@ export function withEntitiesRemotePagination<Entity>({
             },
           });
         },
-        loadEntitiesPage: rxEffect<{ index: number; forceLoad?: boolean }>(
+        loadEntitiesPage: rxMethod<{ index: number; forceLoad?: boolean }>(
           pipe(
             tap(({ index, forceLoad }) => {
               $update({

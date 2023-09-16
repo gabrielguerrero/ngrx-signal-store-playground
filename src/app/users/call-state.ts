@@ -1,5 +1,5 @@
 import {
-  signalStoreFeatureFactory,
+  signalStoreFeature,
   withMethods,
   withSignals,
   withState,
@@ -29,7 +29,7 @@ export function setLoaded(): { callState: 'loaded' } {
 export function withCallState() {
   const callState: { callState: CallState } = { callState: 'init' };
 
-  return signalStoreFeatureFactory()(
+  return signalStoreFeature(
     withState(callState),
     withSignals(({ callState }) => ({
       loading: computed(() => callState() === 'loading'),
