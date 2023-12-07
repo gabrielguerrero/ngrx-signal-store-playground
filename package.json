@@ -23,6 +23,7 @@
     "@angular/platform-browser": "16.1.2",
     "@angular/platform-browser-dynamic": "16.1.2",
     "@angular/router": "16.1.2",
+    "@ngrx/signals": "^17.0.0",
     "immer": "^10.0.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

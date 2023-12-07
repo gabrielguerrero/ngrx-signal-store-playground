@@ -1,12 +1,14 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UsersStore } from './users.store';
+// import { UsersStore } from './users.store';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatListModule } from '@angular/material/list';
 import { MatCardModule } from '@angular/material/card';
 import { Users2Store } from './users2.store';
+import { signalStore, withState, type } from '@ngrx/signals';
+import { withEntities } from '@ngrx/signals/entities';
 
 @Component({
   standalone: true,
@@ -39,7 +41,7 @@ import { Users2Store } from './users2.store';
             <span *ngIf="usersStore.loading()">Loading ...</span>
 
             <mat-list>
-              <mat-list-item *ngFor="let user of usersStore.entitiesList()">{{ user?.name }}</mat-list-item>
+              <mat-list-item *ngFor="let user of usersStore.entities()">{{ user?.name }}</mat-list-item>
             </mat-list>
 
             <mat-paginator
@@ -54,7 +56,9 @@ import { Users2Store } from './users2.store';
 })
 export class Users2Component implements OnInit {
   readonly usersStore = inject(Users2Store);
+  // readonly usersStore2 = inject(TestStore);
   ngOnInit() {
+    // this.usersStore.
     // this.usersStore.
     // console.log('setAll', this.usersStore.setAll);
   }

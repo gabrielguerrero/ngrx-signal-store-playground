@@ -1,12 +1,13 @@
 import {
-  rxMethod,
   withState,
   withMethods,
-  withSignals,
+  withComputed,
   type,
+  signalStoreFeature,
+  patchState,
 } from '@ngrx/signals';
 import { withLoadEntities } from './with-load-entities';
-import { EntityState, withEntities } from './with-entities';
+// import { EntityState, withEntities } from './with-entities';
 import { computed, Signal } from '@angular/core';
 import {
   concatMap,
@@ -18,11 +19,14 @@ import {
   tap,
   timer,
 } from 'rxjs';
-import { signalStoreFeature } from '../../signal-store-feature';
 import {
   NotAllowedStateCheck,
+  SignalState,
   SignalStateUpdate,
 } from '../../signal-state-models';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { withEntities } from '@ngrx/signals/entities';
+import { StateSignal } from '@ngrx/signals/src/state-signal';
 
 export function withEntitiesLocalFilter<
   Entity extends { id: string | number },
@@ -35,40 +39,41 @@ export function withEntitiesLocalFilter<
   defaultFilter: Filter & NotAllowedStateCheck<Filter>;
 }) {
   // TODO throw error if pagination trait is present before this one
-  const withEntities1 = withEntities<Entity>();
+  const withEntities1 = withEntities<Entity>({ entity: type<Entity>() });
   return signalStoreFeature(
     type<ReturnType<typeof withEntities1>>(),
     withState<{ filter: Filter }>({ filter: defaultFilter }),
-    withSignals(({ entitiesList, filter }) => {
+    // withEntities({ entity: type<Entity>() }),
+    withComputed(({ entities, filter }) => {
       return {
-        entitiesList: computed(() => {
-          return entitiesList().filter((entity) => {
+        entities: computed(() => {
+          return entities().filter((entity) => {
             return filterFn(entity, filter());
           });
         }),
       };
     }),
-    withMethods(({ filter, $update }) => ({
+    withMethods(({ filter, ...store }) => ({
       filterEntities: rxMethod<{
         filter: Filter;
         debounce?: number;
         patch?: boolean;
         forceLoad?: boolean;
-      }>(debounceFilterPipe(filter, $update)),
+      }>(debounceFilterPipe(filter, store)),
     }))
   );
   // TODO how do we reset the page to 0 if there is a filter call
 }
 
 export function withEntitiesRemoteFilter<
-  Entity,
+  Entity extends { id: string | number },
   Filter extends Record<string, unknown>
 >({ defaultFilter }: { defaultFilter: Filter & NotAllowedStateCheck<Filter> }) {
   const withEntities1 = withLoadEntities<Entity>();
   return signalStoreFeature(
     type<ReturnType<typeof withEntities1>>(),
     withState<{ filter: Filter }>({ filter: defaultFilter }),
-    withMethods(({ $update, setLoading, filter }) => ({
+    withMethods(({ setLoading, filter, ...store }) => ({
       filterEntities: rxMethod<{
         filter: Filter;
         debounce?: number;
@@ -76,7 +81,7 @@ export function withEntitiesRemoteFilter<
         forceLoad?: boolean;
       }>(
         pipe(
-          debounceFilterPipe(filter, $update),
+          debounceFilterPipe(filter, store),
           tap(() => setLoading())
         )
       ),
@@ -86,7 +91,7 @@ export function withEntitiesRemoteFilter<
 
 function debounceFilterPipe<Filter>(
   filter: Signal<Filter>,
-  update: SignalStateUpdate<EntitiesFilterState<Filter>>['$update']
+  store: StateSignal<EntitiesFilterState<Filter>>
 ) {
   return pipe(
     debounce(
@@ -111,7 +116,7 @@ function debounceFilterPipe<Filter>(
         JSON.stringify(previous?.filter) === JSON.stringify(current?.filter)
     ),
     tap((value) => {
-      update({ filter: value.filter });
+      patchState(store, { filter: value.filter });
     })
   );
 }

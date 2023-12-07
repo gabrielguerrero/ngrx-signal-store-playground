@@ -1,16 +1,18 @@
 import {
-  rxMethod,
+  signalStore,
   type,
   withHooks,
   withMethods,
-  withSignals,
+  withComputed,
   withState,
+  signalStoreFeature,
+  patchState,
 } from '@ngrx/signals';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { computed, effect } from '@angular/core';
 import { pipe, tap } from 'rxjs';
 import { withLoadEntities } from './with-load-entities';
 import { EntitiesFilterState } from './with-entities-filter';
-import { signalStoreFeature } from '../../signal-store-feature';
 import { SignalState } from '../../signal-state-models';
 
 export type EntitiesPaginationRemoteState = {
@@ -27,11 +29,9 @@ export type EntitiesPaginationRemoteState = {
   };
 };
 
-export function withEntitiesRemotePagination<Entity>({
-  pageSize = 10,
-  currentPage = 0,
-  pagesToCache = 3,
-}) {
+export function withEntitiesRemotePagination<
+  Entity extends { id: string | number }
+>({ pageSize = 10, currentPage = 0, pagesToCache = 3 }) {
   const withEntities1 = withLoadEntities<Entity>();
   return signalStoreFeature(
     type<ReturnType<typeof withEntities1>>(),
@@ -49,7 +49,7 @@ export function withEntitiesRemotePagination<Entity>({
       },
     }),
 
-    withSignals(({ entitiesList, pagination }) => {
+    withComputed(({ entities, pagination }) => {
       const entitiesCurrentPageList = computed(() => {
         const page = pagination().currentPage;
         const startIndex =
@@ -57,7 +57,7 @@ export function withEntitiesRemotePagination<Entity>({
         let endIndex = startIndex + pagination().pageSize;
         endIndex =
           endIndex < pagination().cache.end ? endIndex : pagination().cache.end;
-        return entitiesList().slice(startIndex, endIndex);
+        return entities().slice(startIndex, endIndex);
       });
 
       const entitiesPageInfo = computed(() => {
@@ -88,62 +88,63 @@ export function withEntitiesRemotePagination<Entity>({
         entitiesPagedRequest,
       };
     }),
-    withMethods(({ $update, setLoading, pagination, setAll, entitiesList }) => {
-      return {
-        setResult: (entities: Entity[], total: number) => {
-          const isPreloadNextPages =
-            pagination().currentPage + 1 === pagination().requestPage;
+    withMethods(
+      ({ setLoading, pagination, setResult, entitiesList, ...store }) => {
+        return {
+          setResult: (entities: Entity[], total: number) => {
+            const isPreloadNextPages =
+              pagination().currentPage + 1 === pagination().requestPage;
 
-          const start = pagination().currentPage * pagination().pageSize;
-          const newEntities = isPreloadNextPages
-            ? [...entitiesList(), ...entities]
-            : entities;
-          setAll(newEntities);
-          $update({
-            pagination: {
-              ...pagination(),
-              total,
-              cache: {
-                ...pagination().cache,
-                start,
-                end: start + entities.length,
-              },
-            },
-          });
-        },
-        loadEntitiesPage: rxMethod<{ index: number; forceLoad?: boolean }>(
-          pipe(
-            tap(({ index, forceLoad }) => {
-              $update({
-                pagination: {
-                  ...pagination(),
-                  currentPage: index,
-                  requestPage: index,
+            const start = pagination().currentPage * pagination().pageSize;
+            const newEntities = isPreloadNextPages
+              ? [...entitiesList(), ...entities]
+              : entities;
+            setResult(newEntities);
+            patchState(store, {
+              pagination: {
+                ...pagination(),
+                total,
+                cache: {
+                  ...pagination().cache,
+                  start,
+                  end: start + entities.length,
                 },
-              });
-              if (isEntitiesPageInCache(index, pagination()) && !forceLoad) {
-                if (!isEntitiesPageInCache(index + 1, pagination())) {
-                  // preload next page
-                  $update({
-                    pagination: {
-                      ...pagination(),
-                      currentPage: index,
-                      requestPage: index + 1,
-                    },
-                  });
-                  setLoading();
+              },
+            });
+          },
+          loadEntitiesPage: rxMethod<{ index: number; forceLoad?: boolean }>(
+            pipe(
+              tap(({ index, forceLoad }) => {
+                patchState(store, {
+                  pagination: {
+                    ...pagination(),
+                    currentPage: index,
+                    requestPage: index,
+                  },
+                });
+                if (isEntitiesPageInCache(index, pagination()) && !forceLoad) {
+                  if (!isEntitiesPageInCache(index + 1, pagination())) {
+                    // preload next page
+                    patchState(store, {
+                      pagination: {
+                        ...pagination(),
+                        currentPage: index,
+                        requestPage: index + 1,
+                      },
+                    });
+                    setLoading();
+                  }
+                  return;
                 }
-                return;
-              }
-              setLoading();
-            })
-          )
-        ),
-      };
-    }),
+                setLoading();
+              })
+            )
+          ),
+        };
+      }
+    ),
     withHooks({
       onInit: (input) => {
-        const { $update } = input;
         // we need reset the currentPage to 0 when the filter changes, not sure if I'm happy with this solution
         if ('filter' in input) {
           const { filter } = input as unknown as SignalState<
@@ -154,7 +155,7 @@ export function withEntitiesRemotePagination<Entity>({
             () => {
               if (previousFilter !== filter()) {
                 previousFilter = filter();
-                $update({
+                patchState(input, {
                   pagination: {
                     ...input.pagination(),
                     currentPage: 0,
@@ -185,3 +186,4 @@ function isEntitiesPageInCache(
     startIndex >= pagination.cache.start && endIndex <= pagination.cache.end
   );
 }
+export const test = signalStore(withState({ test: false }));

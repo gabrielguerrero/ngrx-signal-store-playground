@@ -1,14 +1,14 @@
-import { withEntities } from './with-entities';
 import {
   type,
   withHooks,
   withMethods,
-  withSignals,
+  withComputed,
   withState,
+  signalStoreFeature,
+  patchState,
 } from '@ngrx/signals';
 import { computed, effect } from '@angular/core';
 import type { EntitiesFilterState } from './with-entities-filter';
-import { signalStoreFeature } from '../../signal-store-feature';
 import { withLoadEntities } from './with-load-entities';
 import { SignalState } from '../../signal-state-models';
 
@@ -19,10 +19,9 @@ export type EntitiesPaginationLocalState = {
   };
 };
 
-export function withEntitiesLocalPagination<Entity>({
-  pageSize = 10,
-  currentPage = 0,
-}) {
+export function withEntitiesLocalPagination<
+  Entity extends { id: string | number }
+>({ pageSize = 10, currentPage = 0 }) {
   const withEntities1 = withLoadEntities<Entity>();
   return signalStoreFeature(
     type<ReturnType<typeof withEntities1>>(),
@@ -32,19 +31,18 @@ export function withEntitiesLocalPagination<Entity>({
         currentPage,
       },
     }),
-    withSignals(({ entitiesList, pagination }) => {
-      // TODO problem if a user puts the filter after the pagination, the filter overriden entitiesList
+    withComputed(({ entities, pagination }) => {
+      // TODO problem if a user puts the filter after the pagination, the filter overriden entities
       // will not work well
       const entitiesCurrentPageList = computed(() => {
         const page = pagination().currentPage;
         const startIndex = page * pagination().pageSize;
         let endIndex = startIndex + pagination().pageSize;
-        endIndex =
-          endIndex < entitiesList().length ? endIndex : entitiesList().length;
-        return entitiesList().slice(startIndex, endIndex);
+        endIndex = endIndex < entities().length ? endIndex : entities().length;
+        return entities().slice(startIndex, endIndex);
       });
       const entitiesPageInfo = computed(() => {
-        const total = entitiesList().length;
+        const total = entities().length;
         const pagesCount =
           total && total! > 0
             ? Math.ceil(total! / pagination().pageSize)
@@ -62,13 +60,13 @@ export function withEntitiesLocalPagination<Entity>({
         };
       });
       return {
-        entitiesList: entitiesCurrentPageList,
+        entities: entitiesCurrentPageList,
         entitiesPageInfo,
       };
     }),
-    withMethods(({ pagination, $update }) => ({
+    withMethods(({ pagination, ...store }) => ({
       loadEntitiesPage: ({ pageIndex }: { pageIndex: number }) => {
-        $update({
+        patchState(store, {
           pagination: {
             ...pagination(),
             currentPage: pageIndex,

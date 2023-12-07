@@ -1,4 +1,11 @@
-import { signalStore, withHooks, withState } from '@ngrx/signals';
+import {
+  signalStore,
+  signalStoreFeature,
+  type,
+  withHooks,
+  withMethods,
+  withState,
+} from '@ngrx/signals';
 import { inject } from '@angular/core';
 import { from } from 'rxjs';
 import { UsersService } from './users.service';
@@ -43,9 +50,21 @@ export const Users2Store = signalStore(
     onInit: ({ loadEntities }) => loadEntities(),
   })
 );
+export const withFaviconFeature = signalStoreFeature(
+  withMethods((store, faviconService = inject(UsersService)) => ({
+    getAll: () => faviconService.getAll(),
+  })),
+  withHooks({
+    onDestroy:
+      (store, faviconService = inject(UsersService)) =>
+      () =>
+        faviconService.getAll(),
+  })
+);
 
 export const Users3Store = signalStore(
   { providedIn: 'root' },
+  withFaviconFeature,
   withLoadEntities<User>(),
   withEntitiesRemoteFilter<User, { name: string }>({
     defaultFilter: { name: '' },
@@ -54,6 +73,12 @@ export const Users3Store = signalStore(
   withLoadEntitiesEffect(({ filter, pagination }) =>
     from(inject(UsersService).getAll())
   ),
+  withMethods((store, faviconService = inject(UsersService)) => ({
+    getAll2: () => faviconService.getAll(),
+  })),
+  withMethods((store, faviconService = inject(UsersService)) => ({
+    getAll3: () => faviconService.getAll(),
+  })),
   withHooks({
     onInit: ({ loadEntities }) => loadEntities(),
   })

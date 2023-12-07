@@ -1,7 +1,8 @@
 import {
+  patchState,
   signalStoreFeature,
+  withComputed,
   withMethods,
-  withSignals,
   withState,
 } from '@ngrx/signals';
 import { computed } from '@angular/core';
@@ -12,10 +13,6 @@ export interface DictionaryNum<T> {
 }
 export declare abstract class Dictionary<T> implements DictionaryNum<T> {
   [id: string]: T | undefined;
-}
-export interface EntityState<T> {
-  ids: string[] | number[];
-  entities: Dictionary<T>;
 }
 
 export function setLoading(): { callState: 'loading' } {
@@ -31,15 +28,15 @@ export function withCallState() {
 
   return signalStoreFeature(
     withState(callState),
-    withSignals(({ callState }) => ({
+    withComputed(({ callState }) => ({
       loading: computed(() => callState() === 'loading'),
       loaded: computed(() => callState() === 'loaded'),
       fail: computed(() => callState() === 'fail'),
     })),
-    withMethods(({ $update }) => ({
-      setLoading: () => $update({ callState: 'loading' }),
-      setLoaded: () => $update({ callState: 'loaded' }),
-      setFail: () => $update({ callState: 'fail' }),
+    withMethods((store) => ({
+      setLoading: () => patchState(store, { callState: 'loading' }),
+      setLoaded: () => patchState(store, { callState: 'loaded' }),
+      setFail: () => patchState(store, { callState: 'fail' }),
     }))
   );
 }

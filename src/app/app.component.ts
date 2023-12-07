@@ -3,10 +3,10 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { JsonPipe } from '@angular/common';
 import { interval } from 'rxjs';
 import { signalState } from '@ngrx/signals';
-import { immerUpdater } from './shared/immer-update.feature';
+// import { immerUpdater } from './shared/immer-update.feature';
 
-import * as test1 from '../tests/test1';
-import * as test2 from '../tests/test2';
+// import * as test1 from '../tests/test1';
+// import * as test2 from '../tests/test2';
 
 @Component({
   selector: 'app-root',
@@ -14,9 +14,9 @@ import * as test2 from '../tests/test2';
   imports: [RouterOutlet, RouterLink, JsonPipe],
   template: `
     <div>
-      <a routerLink="/counter">Counter</a> | <a routerLink="/users">Users</a>|
+      <!--      <a routerLink="/counter">Counter</a> | <a routerLink="/users">Users</a>|-->
       <a routerLink="/users2">Users2</a> |
-      <a routerLink="/todos">Todos</a>
+      <!--      <a routerLink="/todos">Todos</a>-->
     </div>
     <router-outlet></router-outlet>
 
@@ -36,11 +36,11 @@ export class AppComponent {
 
   constructor() {
     interval(1000).subscribe((i) => {
-      this.state.$update(
-        immerUpdater((state) => {
-          state.user.lastName = `Stanimirovic${i + 1}`;
-        })
-      );
+      // this.state.$update(
+      //   immerUpdater((state) => {
+      //     state.user.lastName = `Stanimirovic${i + 1}`;
+      //   })
+      // );
     });
   }
 }

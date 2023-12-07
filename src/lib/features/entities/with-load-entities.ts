@@ -1,30 +1,37 @@
 import {
-  EmptyFeatureResult,
-  Prettify,
-  rxMethod,
   SignalStoreFeature,
   type,
   withMethods,
+  signalStoreFeature,
+  patchState,
 } from '@ngrx/signals';
 
 import { setLoading, withCallState } from '../../../app/users/call-state';
 import { exhaustMap, Observable, pipe, tap, Unsubscribable } from 'rxjs';
-import { withEntities } from './with-entities';
-import { signalStoreFeature } from '../../signal-store-feature';
 import {
+  EmptyFeatureResult,
   InnerSignalStore,
   SignalStoreFeatureResult,
   SignalStoreInternals,
   SignalStoreSlices,
 } from '../../signal-store-models';
+import { withEntities, setAllEntities } from '@ngrx/signals/entities';
+import { EntityId } from '@ngrx/signals/entities/src/models';
+// import { STATE_SIGNAL, StateSignal } from '@ngrx/signals/src/state-signal';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
 
-export function withLoadEntities<Entity>() {
+export function withLoadEntities<
+  Entity extends {
+    id: EntityId;
+  }
+>() {
   // getAll: () => Observable<Entity[]> // or: Promise<Entity[]>
   return signalStoreFeature(
     withCallState(),
-    withEntities<Entity>(),
-    withMethods(({ setAll }) => ({
-      setResult: (entities: Entity[]) => setAll(entities),
+    withEntities({ entity: type<Entity>() }),
+    withMethods((store) => ({
+      setResult: (entities: Entity[]) =>
+        patchState(store, setAllEntities(entities)),
     }))
 
     // withEffects(({ setLoaded, setAll }) => ({
@@ -47,7 +54,7 @@ export function withLoadEntitiesEffect<
   Entity extends { id: string | number }
 >(
   getAll: (
-    input: Prettify<
+    store: Prettify<
       SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
     >
   ) => Observable<Entity[]> // or: Promise<Entity[]>
@@ -55,12 +62,10 @@ export function withLoadEntitiesEffect<
   Input,
   EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
 > {
-  return (
-    store: InnerSignalStore<Input['state'], Input['signals'], Input['methods']>
-  ) => {
+  return (store) => {
     return signalStoreFeature(
       type<typeof store>(),
-      withMethods(({ setAll, setLoaded }) => ({
+      withMethods(({ setResult, setLoaded }) => ({
         loadEntities: rxMethod<void>(
           pipe(
             tap(() => setLoading()),
@@ -69,10 +74,11 @@ export function withLoadEntitiesEffect<
                 ...store.slices,
                 ...store.signals,
                 ...store.methods,
-              })
+              } as Prettify<SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']>)
             ),
             tap((entities) => {
-              setAll(entities);
+              console.log('entities', entities);
+              setResult(entities);
               setLoaded();
             })
           )
@@ -133,3 +139,4 @@ export function withLoadEntitiesEffect<
 //     return loadEntitiesFeature1(featureInput as any);
 //   };
 // }
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
