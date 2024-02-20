@@ -14,7 +14,7 @@ import { signalState } from '@ngrx/signals';
   imports: [RouterOutlet, RouterLink, JsonPipe],
   template: `
     <div>
-      <!--      <a routerLink="/counter">Counter</a> | <a routerLink="/users">Users</a>|-->
+      <!--  x    <a routerLink="/counter">Counter</a> | <a routerLink="/users">Users</a>|-->
       <a routerLink="/users2">Users2</a> |
       <!--      <a routerLink="/todos">Todos</a>-->
     </div>

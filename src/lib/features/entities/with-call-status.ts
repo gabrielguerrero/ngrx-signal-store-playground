@@ -7,7 +7,7 @@ import {
   withState,
 } from '@ngrx/signals';
 import { computed, Signal } from '@angular/core';
-import { capitalize } from '../../lib/features/entities/util';
+import { capitalize } from './util';
 
 export type CallStatus = 'init' | 'loading' | 'loaded' | { error: string };
 export interface DictionaryNum<T> {

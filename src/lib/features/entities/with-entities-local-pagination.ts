@@ -268,6 +268,7 @@ export function withEntitiesLocalPagination<
             () => {
               if (previousFilter !== filter()) {
                 previousFilter = filter();
+
                 input[loadEntitiesPageKey]({ pageIndex: 0 });
               }
             },

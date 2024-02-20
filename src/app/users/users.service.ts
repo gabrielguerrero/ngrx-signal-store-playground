@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
-import { delay, Observable, of } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
+import { delay, lastValueFrom, Observable, of } from 'rxjs';
 import { User } from './user.model';
 import { Filter } from '../shared/filter.feature';
+import { HttpClient } from '@angular/common/http';
 
 const usersMock: User[] = [
   { id: 1, name: 'Alex' },
@@ -17,11 +18,25 @@ const usersMock: User[] = [
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
-  getAll(): Promise<User[]> {
-    console.log('calling fetch users');
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(usersMock), 1000);
-    });
+  client = inject(HttpClient);
+  getAll({
+    filter,
+    take,
+    skip,
+    sortField,
+    sortDirection,
+  }: {
+    filter?: string;
+    take?: number;
+    skip?: number;
+    sortField?: string;
+    sortDirection?: 'asc' | 'desc' | '';
+  } = {}) {
+    return lastValueFrom(
+      this.client.get<{ results: User[]; total: number }>(
+        `http://localhost:3333/products?search=${filter}&take=${take}&skip=${skip}&sortField=${sortField}&sortDirection=${sortDirection}`
+      )
+    );
   }
 
   getByFilter(filter: Filter): Observable<User[]> {

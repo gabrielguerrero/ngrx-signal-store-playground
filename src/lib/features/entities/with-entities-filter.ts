@@ -27,6 +27,7 @@ import {
   NamedEntitySignals,
 } from '@ngrx/signals/entities/src/models';
 import { capitalize, Prettify } from './util';
+import { NamedCallStateMethods } from './with-call-status';
 
 export type EntitiesFilterState<Filter> = { filter: Filter };
 export type NamedEntitiesFilterState<Collection extends string, Filter> = {
@@ -151,7 +152,9 @@ export function withEntitiesRemoteFilter<
   {
     state: EntityState<Entity>;
     signals: EntitySignals<Entity>;
-    methods: {};
+    methods: {
+      setLoading: () => void;
+    };
   },
   {
     state: EntitiesFilterState<Filter>;
@@ -169,11 +172,9 @@ export function withEntitiesRemoteFilter<
   collection?: Collection;
 }): SignalStoreFeature<
   {
-    state: NamedEntityState<Entity, Collection>;
+    state: NamedEntityState<Entity, any>;
     signals: NamedEntitySignals<Entity, Collection>;
-    methods: {
-      setLoading: () => void;
-    };
+    methods: NamedCallStateMethods<Collection>;
   },
   {
     state: NamedEntitiesFilterState<Collection, Filter>;
@@ -194,7 +195,8 @@ export function withEntitiesRemoteFilter<
   defaultFilter: Filter & NotAllowedStateCheck<Filter>;
 }): any {
   // TODO fix the any type here
-  const { filterKey, setLoadingKey } = getEntitiesFilterKeys(config);
+  const { filterKey, setLoadingKey, filterEntitiesKey } =
+    getEntitiesFilterKeys(config);
   return signalStoreFeature(
     // type<ReturnType<typeof withEntities1>>(),
     withState({ [filterKey]: defaultFilter }),
@@ -203,7 +205,7 @@ export function withEntitiesRemoteFilter<
       const filter = state[filterKey] as Signal<Filter>;
 
       return {
-        filterEntities: rxMethod<{
+        [filterEntitiesKey]: rxMethod<{
           filter: Filter;
           debounce?: number;
           patch?: boolean;

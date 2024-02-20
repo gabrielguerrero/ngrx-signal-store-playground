@@ -33,32 +33,24 @@ import {
 } from '@ngrx/signals/entities/src/models';
 import { capitalize, Prettify } from './util';
 import { Sort, sortData } from './sort-entities.utils';
+import { NamedCallStateMethods } from './with-call-status';
 
 export declare type SortDirection = 'asc' | 'desc' | '';
 
 export interface EntitiesSortState<Entity> {
-  sort: {
-    current: Sort<Entity>;
-    default: Sort<Entity>;
-  };
+  sort: Sort<Entity>;
 }
 export type NamedEntitiesSortState<Entity, Collection extends string> = {
-  [K in Collection as `${K}Sort`]: {
-    current: Sort<Entity>;
-    default: Sort<Entity>;
-  };
+  [K in Collection as `${K}Sort`]: Sort<Entity>;
 };
 
 export type EntitiesSortMethods<Entity> = {
   sortEntities: (options: { sort: Sort<Entity> }) => void;
-  resetEntitiesSort: (options: { sort: Sort<Entity> }) => void;
 };
 export type NamedEntitiesSortMethods<Entity, Collection extends string> = {
   [K in Collection as `sort${Capitalize<string & K>}Entities`]: (options: {
     sort: Sort<Entity>;
   }) => void;
-} & {
-  [K in Collection as `resetSort${Capitalize<string & K>}Entities`]: () => void;
 };
 function getEntitiesSortKeys(config?: { collection?: string }) {
   const collection = config?.collection;
@@ -128,28 +120,25 @@ export function withEntitiesLocalSort<
   // TODO throw error if pagination trait is present before this one or find a way to make it not matter
   const { sortEntitiesKey, sortKey, entitiesKey } = getEntitiesSortKeys(config);
   return signalStoreFeature(
-    withState({ [sortKey]: { current: defaultSort, default: defaultSort } }),
+    withState({ [sortKey]: defaultSort }),
     withComputed((state: Record<string, Signal<unknown>>) => {
       const entities = state[entitiesKey] as Signal<Entity[]>;
       const sort = state[sortKey] as Signal<EntitiesSortState<Entity>['sort']>;
       return {
         [entitiesKey]: computed(() => {
           // console.log('state', getState(state as any));
-          console.log('sort', sortData(entities(), sort().current));
-          return sortData(entities(), sort().current);
+          console.log('sort', sortData(entities(), sort()));
+          return sortData(entities(), sort());
         }),
       };
     }),
     withMethods((state: Record<string, Signal<unknown>>) => {
-      const sortState = state[sortKey] as Signal<
-        EntitiesSortState<Entity>['sort']
-      >;
       return {
         [sortEntitiesKey]: ({ sort: newSort }: { sort: Sort<Entity> }) => {
           patchState(
             state as any,
             {
-              [sortKey]: { ...sortState(), current: newSort },
+              [sortKey]: newSort,
             } as any,
             config.collection
               ? setAllEntities(sortData(state[entitiesKey]() as any, newSort), {
@@ -191,11 +180,9 @@ export function withEntitiesRemoteSort<
   collection?: Collection;
 }): SignalStoreFeature<
   {
-    state: NamedEntityState<Entity, Collection>;
+    state: NamedEntityState<Entity, any>;
     signals: NamedEntitySignals<Entity, Collection>;
-    methods: {
-      setLoading: () => void;
-    };
+    methods: NamedCallStateMethods<Collection>;
   },
   {
     state: NamedEntitiesSortState<Entity, Collection>;
@@ -223,12 +210,12 @@ export function withEntitiesRemoteSort<
       const setLoading = state[setLoadingKey] as () => void;
 
       return {
-        [sortEntitiesKey]: ({ newSort }: { newSort: Sort<Entity> }) => {
+        [sortEntitiesKey]: ({ sort: newSort }: { sort: Sort<Entity> }) => {
           const sortState = state[sortKey] as Signal<
             EntitiesSortState<Entity>['sort']
           >;
           patchState(state as any, {
-            [sortKey]: { ...sortState(), current: newSort },
+            [sortKey]: newSort,
           });
           setLoading();
         }, // TODO fix the any type here

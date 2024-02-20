@@ -65,18 +65,18 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
                       />
                     </mat-form-field>
 
-        @if (usersStore.usersLoading()) {
+        @if (usersStore.usersCurrentPage().isLoading) {
          <mat-spinner/>
         } @else {
-        <table
-          mat-table
-          style="width: 100%"
-          [dataSource]=" usersStore.usersCurrentPage().entities"
-          matSort
-          [matSortActive]="usersStore.usersSort().current.field"
-          [matSortDirection]="usersStore.usersSort().current.direction"
-          (matSortChange)="usersStore.sortUsersEntities({sort:{field: $event.active.toString(), direction: $event.direction}})"
-        >
+          <table
+            mat-table
+            style="width: 100%"
+            [dataSource]=" usersStore.usersCurrentPage().entities"
+            matSort
+            [matSortActive]="usersStore.usersSort().field"
+            [matSortDirection]="usersStore.usersSort().direction"
+            (matSortChange)="usersStore.sortUsersEntities({sort:{field: $event.active, direction: $event.direction}})"
+          >
           <ng-container matColumnDef="id">
             <th mat-header-cell mat-sort-header *matHeaderCellDef>Id</th>
             <td mat-cell *matCellDef="let row">{{ row.id }}</td>
@@ -85,8 +85,6 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
             <th mat-header-cell mat-sort-header *matHeaderCellDef>Name</th>
             <td mat-cell *matCellDef="let row">{{ row.name }}</td>
           </ng-container>
-
-
           <tr
             mat-header-row
             *matHeaderRowDef="displayedColumns; sticky: true"
@@ -127,9 +125,8 @@ export class Users2Component implements OnInit {
       name: 'wewe',
     },
   });
-  // readonly usersStore2 = inject(TestStore);
   ngOnInit() {
-    this.usersStore.filterUsersEntities(this.filter());
+    // this.usersStore.filterUsersEntities(this.filter());
     console.log('usersStore', this.usersStore);
     // this.usersStore.
     // this.usersStore.

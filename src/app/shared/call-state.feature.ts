@@ -1,21 +1,15 @@
-import {
-  selectSignal,
-  signalStoreFeature,
-  withSignals,
-  withState,
-} from '@ngrx/signals';
+import { signalStoreFeature, withComputed, withState } from '@ngrx/signals';
+import { computed } from '@angular/core';
 
 export type CallState = 'init' | 'loading' | 'loaded' | { error: string };
 
 export function withCallState() {
   return signalStoreFeature(
-    withState<{ callState: CallState }>({ callState: 'init' }),
-    withSignals(({ callState }) => ({
-      loading: selectSignal(() => callState() === 'loading'),
-      loaded: selectSignal(() => callState() === 'loaded'),
-      error: selectSignal(callState, (callState) =>
-        typeof callState === 'object' ? callState.error : null
-      ),
+    withState({ callState: 'init' }),
+    withComputed(({ callState }) => ({
+      loading: computed(() => callState() === 'loading'),
+      loaded: computed(() => callState() === 'loaded'),
+      error: computed(() => (typeof callState === 'object' ? callState : null)),
     }))
   );
 }
