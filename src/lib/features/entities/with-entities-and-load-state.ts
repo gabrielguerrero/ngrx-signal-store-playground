@@ -8,7 +8,11 @@ import {
 
 import {
   CallState,
+  CallStateComputed,
+  CallStateMethods,
   NamedCallState,
+  NamedCallStateComputed,
+  NamedCallStateMethods,
   setLoading,
   withCallStatus,
 } from './with-call-status';
@@ -24,9 +28,13 @@ import {
   setAllEntities,
   withEntities,
 } from '@ngrx/signals/entities';
-import { EntityId } from '@ngrx/signals/entities/src/models';
+import {
+  EntityId,
+  EntitySignals,
+  NamedEntitySignals,
+} from '@ngrx/signals/entities/src/models';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { Prettify } from './util';
+import { capitalize, Prettify } from './util';
 import type {
   EntitiesPaginationRemoteMethods,
   NamedEntitiesPaginationRemoteMethods,
@@ -103,7 +111,11 @@ export function withEntitiesLoadingCall<
         >;
   } // or: Promise<Entity[]>
 ): SignalStoreFeature<
-  Input,
+  Input & {
+    state: EntityState<Entity> & CallState;
+    signals: EntitySignals<Entity> & CallStateComputed;
+    methods: CallStateMethods;
+  },
   EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
 >;
 
@@ -115,8 +127,8 @@ export function withEntitiesLoadingCall<
   {
     fetchEntities,
   }: {
-    entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
-    collection?: Collection;
+    // entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
+    collection: Collection;
     fetchEntities: (
       store: Prettify<
         SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
@@ -140,7 +152,16 @@ export function withEntitiesLoadingCall<
         >;
   } // or: Promise<Entity[]>
 ): SignalStoreFeature<
-  Input,
+  Input & {
+    state: Prettify<
+      NamedEntityState<Entity, Collection> & NamedCallState<Collection>
+    >;
+    signals: Prettify<
+      NamedEntitySignals<Entity, Collection> &
+        NamedCallStateComputed<Collection>
+    >;
+    methods: Prettify<NamedCallStateMethods<Collection>>;
+  },
   EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
 >;
 
@@ -148,19 +169,17 @@ export function withEntitiesLoadingCall<
   Input extends SignalStoreFeatureResult,
   Entity extends { id: string | number },
   Collection extends string
->(
-  {
-    fetchEntities,
-  }: {
-    entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
-    collection?: Collection;
-    fetchEntities: (
-      store: Prettify<
-        SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
-      >
-    ) => Observable<any> | Promise<any>;
-  } // or: Promise<Entity[]>
-): SignalStoreFeature<
+>({
+  fetchEntities,
+}: {
+  entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
+  collection?: Collection;
+  fetchEntities: (
+    store: Prettify<
+      SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
+    >
+  ) => Observable<any> | Promise<any>;
+}): SignalStoreFeature<
   Input,
   EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
 > {
@@ -187,5 +206,34 @@ export function withEntitiesLoadingCall<
         ),
       }))
     )(store); // we execute the factory so we can pass the input
+  };
+}
+// TODO move thi getKeys function to a util file so they can be shared
+function getEntitiesLoadingCallKeys(config?: { collection?: string }) {
+  const collection = config?.collection;
+  const capitalizedProp = collection && capitalize(collection);
+  return {
+    paginationKey: collection ? `${config.collection}Pagination` : 'pagination',
+    entitiesCurrentPageKey: collection
+      ? `${config.collection}CurrentPage`
+      : 'entitiesCurrentPage',
+    entitiesPagedRequestKey: collection
+      ? `${config.collection}PagedRequest`
+      : 'entitiesPagedRequest',
+    entitiesKey: collection ? `${config.collection}Entities` : 'entities',
+    loadEntitiesPageKey: collection
+      ? `load${capitalizedProp}Page`
+      : 'loadEntitiesPage',
+    setEntitiesLoadResult: collection
+      ? `set${capitalizedProp}LoadedResult`
+      : 'setEntitiesLoadedResult',
+    filterKey: collection ? `${config.collection}Filter` : 'filter',
+    callStatusKey: collection ? `${config.collection}CallStatus` : 'callStatus',
+    loadingKey: collection ? `${config.collection}Loading` : 'loading',
+    loadedKey: collection ? `${config.collection}Loaded` : 'loaded',
+    errorKey: collection ? `${config.collection}Error` : 'error',
+    setLoadingKey: collection ? `set${capitalizedProp}Loading` : 'setLoading',
+    setLoadedKey: collection ? `set${capitalizedProp}Loaded` : 'setLoaded',
+    setFailKey: collection ? `set${capitalizedProp}Fail` : 'setFail',
   };
 }

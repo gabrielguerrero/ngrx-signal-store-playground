@@ -144,6 +144,7 @@ export const Users3Store = signalStore(
 //   : never;
 // type tt = Prettify<typeof f3>; // type TestF = { f: {} }
 // const entitiesConfig = { entity: type<User>(), collection: 'users' } as const;
+
 export const Users2Store = signalStore(
   { providedIn: 'root' },
   withEntities({ entity: type<User>(), collection: 'users' }),
