@@ -164,7 +164,7 @@ export function withEntitiesRemotePagination<
     loadingKey,
     setLoadingKey,
     setLoadedKey,
-    setEntitiesLoadResult,
+    setEntitiesLoadResultKey,
   } = getEntitiesPaginationKeys(config);
 
   return signalStoreFeature(
@@ -233,11 +233,10 @@ export function withEntitiesRemotePagination<
     }),
     withMethods((state: Record<string, Signal<unknown>>) => {
       const pagination = state[paginationKey] as Signal<PaginationState>;
-      const setLoading = state[setLoadingKey] as Signal<() => void>;
-      const setLoaded = state[setLoadedKey] as Signal<() => void>;
+      const setLoading = state[setLoadingKey] as () => void;
       const entitiesList = state[entitiesKey] as Signal<Entity[]>;
       return {
-        [setEntitiesLoadResult]: (entities: Entity[], total: number) => {
+        [setEntitiesLoadResultKey]: (entities: Entity[], total: number) => {
           // TODO extract this function and test all egg cases, like preloading next pages and jumping page
           console.log('setEntitiesLoadedResult', entities, total);
           const isPreloadNextPagesReady =
@@ -380,7 +379,7 @@ function getEntitiesPaginationKeys(config?: { collection?: string }) {
     loadEntitiesPageKey: collection
       ? `load${capitalizedProp}Page`
       : 'loadEntitiesPage',
-    setEntitiesLoadResult: collection
+    setEntitiesLoadResultKey: collection
       ? `set${capitalizedProp}LoadedResult`
       : 'setEntitiesLoadedResult',
     filterKey: collection ? `${config.collection}Filter` : 'filter',

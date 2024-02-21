@@ -37,9 +37,9 @@ import { NamedCallStateMethods } from './with-call-status';
 
 export declare type SortDirection = 'asc' | 'desc' | '';
 
-export interface EntitiesSortState<Entity> {
+export type EntitiesSortState<Entity> = {
   sort: Sort<Entity>;
-}
+};
 export type NamedEntitiesSortState<Entity, Collection extends string> = {
   [K in Collection as `${K}Sort`]: Sort<Entity>;
 };
@@ -66,11 +66,9 @@ function getEntitiesSortKeys(config?: { collection?: string }) {
 }
 
 export function withEntitiesLocalSort<
-  Entity extends { id: string | number },
-  Sort extends Record<string, unknown>
+  Entity extends { id: string | number }
 >(options: {
-  filterFn: (entity: Entity, filter?: Sort) => boolean;
-  defaultSort: Sort & NotAllowedStateCheck<Sort>;
+  defaultSort: Sort<Entity> & NotAllowedStateCheck<Sort<Entity>>;
   entity?: Entity;
 }): SignalStoreFeature<
   {
@@ -86,10 +84,9 @@ export function withEntitiesLocalSort<
 >;
 export function withEntitiesLocalSort<
   Entity extends { id: string | number },
-  Collection extends string,
-  Sort extends Record<string, unknown>
+  Collection extends string
 >(options: {
-  defaultSort: Sort & NotAllowedStateCheck<Sort>;
+  defaultSort: Sort<Entity> & NotAllowedStateCheck<Sort<Entity>>;
   entity?: Entity;
   collection?: Collection;
 }): SignalStoreFeature<
@@ -161,8 +158,8 @@ export function withEntitiesRemoteSort<
   entity?: Entity;
 }): SignalStoreFeature<
   {
-    state: EntityState<Entity>;
-    signals: EntitySignals<Entity>;
+    state: Prettify<EntityState<Entity>>;
+    signals: Prettify<EntitySignals<Entity>>;
     methods: {};
   },
   {
@@ -211,9 +208,6 @@ export function withEntitiesRemoteSort<
 
       return {
         [sortEntitiesKey]: ({ sort: newSort }: { sort: Sort<Entity> }) => {
-          const sortState = state[sortKey] as Signal<
-            EntitiesSortState<Entity>['sort']
-          >;
           patchState(state as any, {
             [sortKey]: newSort,
           });

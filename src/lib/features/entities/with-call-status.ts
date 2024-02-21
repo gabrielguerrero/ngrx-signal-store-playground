@@ -10,12 +10,6 @@ import { computed, Signal } from '@angular/core';
 import { capitalize } from './util';
 
 export type CallStatus = 'init' | 'loading' | 'loaded' | { error: string };
-export interface DictionaryNum<T> {
-  [id: number]: T | undefined;
-}
-export declare abstract class Dictionary<T> implements DictionaryNum<T> {
-  [id: string]: T | undefined;
-}
 
 export type CallState = {
   callStatus: CallStatus;

@@ -1,16 +1,16 @@
 import { SortDirection } from './with-entities-sort';
 
 const MAX_SAFE_INTEGER = 9007199254740991;
-export interface Sort<Entity> {
+export type Sort<Entity> = {
   /** The id of the column being sorted. */
   field: keyof Entity | string;
   /** The sort direction. */
   direction: SortDirection;
-}
+};
 export function _isNumberValue(value: any): boolean {
   // parseFloat(value) handles most of the cases we're interested in (it treats null, empty string,
   // and other non-number values as NaN, where Number just uses 0) but it considers the string
-  // '123hello' to be a valid number. Therefore we also check if Number(value) is NaN.
+  // '123hello' to be a valid number. Therefore, we also check if Number(value) is NaN.
   return !isNaN(parseFloat(value as any)) && !isNaN(Number(value));
 }
 
@@ -23,7 +23,7 @@ function sortingDataAccessor<T>(
   if (_isNumberValue(value)) {
     const numberValue = Number(value);
 
-    // Numbers beyond `MAX_SAFE_INTEGER` can't be compared reliably so we
+    // Numbers beyond `MAX_SAFE_INTEGER` can't be compared reliably, so we
     // leave them as strings. For more info: https://goo.gl/y5vbSg
     return numberValue < MAX_SAFE_INTEGER ? numberValue : value;
   }

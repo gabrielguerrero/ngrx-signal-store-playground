@@ -74,36 +74,6 @@ export const withFaviconFeature = signalStoreFeature(
   })
 );
 
-export const Users3Store = signalStore(
-  { providedIn: 'root' },
-  withFaviconFeature,
-  withEntitiesAndLoadState<User>(),
-  withEntitiesRemoteFilter<User, { name: string }>({
-    defaultFilter: { name: '' },
-  }),
-  withEntitiesRemotePagination<User>({ pageSize: 5 }),
-  withEntitiesLoadingCall({
-    fetchEntities: ({ filter }) =>
-      from(
-        inject(UsersService)
-          .getAll()
-          .then((d) => ({
-            entities: d.results,
-            total: d.total,
-          }))
-      ),
-  }),
-  withMethods((store, faviconService = inject(UsersService)) => ({
-    getAll2: () => faviconService.getAll(),
-  })),
-  withMethods((store, faviconService = inject(UsersService)) => ({
-    getAll3: () => faviconService.getAll(),
-  })),
-  withHooks({
-    onInit: ({ loadEntities }) => loadEntities(),
-  })
-);
-
 // export const Users4Store = signalStore(
 //   { providedIn: 'root' },
 //   withEntities<User>(),
@@ -143,30 +113,32 @@ export const Users3Store = signalStore(
 //   ? { [K in keyof T]: Normalize<T[K]> }
 //   : never;
 // type tt = Prettify<typeof f3>; // type TestF = { f: {} }
-// const entitiesConfig = { entity: type<User>(), collection: 'users' } as const;
+const entitiesConfig = { entity: type<User>(), collection: 'users' } as const;
 
+const entity = type<User>();
+const collection = 'users';
 export const Users2Store = signalStore(
   { providedIn: 'root' },
-  withEntities({ entity: type<User>(), collection: 'users' }),
+  withEntities({ entity, collection }),
   withCallStatus({ prop: 'users' }),
   withEntitiesRemoteFilter({
-    entity: type<User>(),
-    collection: 'users',
+    entity,
+    collection,
     defaultFilter: { name: '' },
   }),
   withEntitiesRemotePagination({
-    entity: type<User>(),
-    collection: 'users',
+    entity,
+    collection,
     pageSize: 5,
     pagesToCache: 2,
   }),
   withEntitiesRemoteSort({
-    entity: type<User>(),
-    collection: 'users',
+    entity,
+    collection,
     defaultSort: { field: 'name', direction: 'asc' },
   }),
   withEntitiesLoadingCall({
-    collection: 'users',
+    collection,
     fetchEntities: ({ usersFilter, usersPagedRequest, usersSort }) =>
       inject(UsersService)
         .getAll({
@@ -180,38 +152,45 @@ export const Users2Store = signalStore(
           entities: d.results,
           total: d.total,
         })),
-  }),
-  withHooks({
-    onInit: (
-      {
-        usersFilter,
-        usersPagedRequest,
-        usersSort,
-        usersLoading,
-        setUsersLoadedResult,
-        setUsersLoaded,
-        ...store
-      },
-      usersService = inject(UsersService)
-    ) => {
-      effect(async () => {
-        console.log('state', getState(store));
-        if (usersLoading()) {
-          const { results, total } = await usersService.getAll({
-            filter: usersFilter().name,
-            skip: usersPagedRequest().startIndex,
-            take: usersPagedRequest().size,
-            sortField: usersSort().field,
-            sortDirection: usersSort().direction,
-          });
-          setUsersLoadedResult(results, total);
-          setUsersLoaded();
-        }
-      });
-    },
   })
 );
 
+export const Users4Store = signalStore(
+  { providedIn: 'root' },
+  withEntities({ entity }),
+  withCallStatus(),
+  withEntitiesRemoteFilter({
+    entity,
+    defaultFilter: { name: '' },
+  }),
+  withEntitiesRemotePagination({
+    entity,
+    pageSize: 5,
+    pagesToCache: 2,
+  }),
+  withEntitiesRemoteSort({
+    entity,
+    defaultSort: { field: 'name', direction: 'asc' },
+  }),
+  withEntitiesLoadingCall({
+    fetchEntities: (
+      { filter, entitiesPagedRequest, sort },
+      userService = inject(UsersService)
+    ) =>
+      userService
+        .getAll({
+          filter: filter().name,
+          skip: entitiesPagedRequest().startIndex,
+          take: entitiesPagedRequest().size,
+          sortField: sort().field,
+          sortDirection: sort().direction,
+        })
+        .then((d) => ({
+          entities: d.results,
+          total: d.total,
+        })),
+  })
+);
 // withMethods(
 //   (
 //     { usersFilter, usersSort, setUsersLoadResult, usersPagedRequest },

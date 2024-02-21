@@ -3,6 +3,7 @@ import {
   signalStoreFeature,
   SignalStoreFeature,
   type,
+  withHooks,
   withMethods,
 } from '@ngrx/signals';
 
@@ -16,9 +17,18 @@ import {
   setLoading,
   withCallStatus,
 } from './with-call-status';
-import { exhaustMap, Observable, pipe, tap, Unsubscribable } from 'rxjs';
+import {
+  exhaustMap,
+  first,
+  from,
+  Observable,
+  pipe,
+  tap,
+  Unsubscribable,
+} from 'rxjs';
 import {
   EmptyFeatureResult,
+  InnerSignalStore,
   SignalStoreFeatureResult,
   SignalStoreSlices,
 } from '../../signal-store-models';
@@ -39,6 +49,14 @@ import type {
   EntitiesPaginationRemoteMethods,
   NamedEntitiesPaginationRemoteMethods,
 } from './with-entities-remote-pagination';
+import {
+  effect,
+  EnvironmentInjector,
+  inject,
+  runInInjectionContext,
+  Signal,
+} from '@angular/core';
+import { tapResponse } from '../../tap-response';
 
 export type EntitiesAndLoadState<Entity> = EntityState<Entity> & CallState;
 export type NamedEntitiesAndLoadState<
@@ -90,68 +108,64 @@ export function withEntitiesAndLoadState<
 export function withEntitiesLoadingCall<
   Input extends SignalStoreFeatureResult,
   Entity extends { id: string | number }
->(
-  {
-    fetchEntities,
-  }: {
-    fetchEntities: (
-      store: Prettify<
-        SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
+>({
+  fetchEntities,
+}: {
+  fetchEntities: (
+    store: Prettify<
+      SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
+    >
+  ) =>
+    | Observable<
+        Input['methods'] extends EntitiesPaginationRemoteMethods<Entity>
+          ? { entities: Entity[]; total: number }
+          : Entity[] | { entities: Entity[] } // should this be { entities: Entity[];} for consistency?
       >
-    ) =>
-      | Observable<
-          Input['methods'] extends EntitiesPaginationRemoteMethods<Entity>
-            ? { entities: Entity[]; total: number }
-            : Entity[] | { entities: Entity[] } // should this be { entities: Entity[];} for consistency?
-        >
-      | Promise<
-          Input['methods'] extends EntitiesPaginationRemoteMethods<Entity>
-            ? { entities: Entity[]; total: number }
-            : Entity[] | { entities: Entity[] }
-        >;
-  } // or: Promise<Entity[]>
-): SignalStoreFeature<
+    | Promise<
+        Input['methods'] extends EntitiesPaginationRemoteMethods<Entity>
+          ? { entities: Entity[]; total: number }
+          : Entity[] | { entities: Entity[] }
+      >;
+}): SignalStoreFeature<
   Input & {
-    state: EntityState<Entity> & CallState;
-    signals: EntitySignals<Entity> & CallStateComputed;
-    methods: CallStateMethods;
+    state: Prettify<EntityState<Entity> & CallState>;
+    signals: Prettify<EntitySignals<Entity> & CallStateComputed>;
+    methods: Prettify<CallStateMethods>;
   },
-  EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
+  EmptyFeatureResult
 >;
 
 export function withEntitiesLoadingCall<
   Input extends SignalStoreFeatureResult,
   Entity extends { id: string | number },
   Collection extends string
->(
-  {
-    fetchEntities,
-  }: {
-    // entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
-    collection: Collection;
-    fetchEntities: (
-      store: Prettify<
-        SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
-      >
-    ) =>
-      | Observable<
-          Input['methods'] extends NamedEntitiesPaginationRemoteMethods<
-            Entity,
-            Collection
-          >
-            ? { entities: Entity[]; total: number }
-            : Entity[] | { entities: Entity[] } // should this be { entities: Entity[];} for consistency?
+>({
+  fetchEntities,
+}: {
+  // entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
+  collection: Collection;
+  fetchEntities: (
+    store: Prettify<
+      SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
+    >
+  ) =>
+    | Observable<
+        Input['methods'] extends NamedEntitiesPaginationRemoteMethods<
+          Entity,
+          Collection
         >
-      | Promise<
-          Input['methods'] extends NamedEntitiesPaginationRemoteMethods<
-            Entity,
-            Collection
-          >
-            ? { entities: Entity[]; total: number }
-            : Entity[] | { entities: Entity[] } // should this be { entities: Entity[];} for consistency?
-        >;
-  } // or: Promise<Entity[]>
-): SignalStoreFeature<
+          ? { entities: Entity[]; total: number }
+          : Entity[] | { entities: Entity[] } // should this be { entities: Entity[];} for consistency?
+      >
+    | Promise<
+        Input['methods'] extends NamedEntitiesPaginationRemoteMethods<
+          Entity,
+          Collection
+        >
+          ? { entities: Entity[]; total: number }
+          : Entity[] | { entities: Entity[] } // should this be { entities: Entity[];} for consistency?
+      >;
+}): SignalStoreFeature<
   Input & {
     state: Prettify<
       NamedEntityState<Entity, Collection> & NamedCallState<Collection>
@@ -162,7 +176,7 @@ export function withEntitiesLoadingCall<
     >;
     methods: Prettify<NamedCallStateMethods<Collection>>;
   },
-  EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
+  EmptyFeatureResult
 >;
 
 export function withEntitiesLoadingCall<
@@ -170,6 +184,7 @@ export function withEntitiesLoadingCall<
   Entity extends { id: string | number },
   Collection extends string
 >({
+  collection,
   fetchEntities,
 }: {
   entity?: Entity; // is this needed? entity can come from the method fetchEntities return type
@@ -179,32 +194,62 @@ export function withEntitiesLoadingCall<
       SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']
     >
   ) => Observable<any> | Promise<any>;
-}): SignalStoreFeature<
-  Input,
-  EmptyFeatureResult & { methods: { loadEntities: () => Unsubscribable } }
-> {
+}): SignalStoreFeature<Input, EmptyFeatureResult> {
+  const { loadingKey, setFailKey, setLoadedKey, setEntitiesLoadResultKey } =
+    getEntitiesLoadingCallKeys({ collection });
   return (store) => {
+    const loading = store.signals[loadingKey] as Signal<boolean>;
+    const setLoaded = store.methods[setLoadedKey] as () => void;
+    const setFail = store.methods[setFailKey] as (error: unknown) => void;
+    const setEntitiesLoadResult = store.methods[setEntitiesLoadResultKey] as (
+      entities: Entity[],
+      total: number
+    ) => void;
+
     return signalStoreFeature(
-      type<typeof store>(),
-      withMethods(({ setResult, setLoaded }) => ({
-        loadEntities: rxMethod<void>(
-          pipe(
-            tap(() => setLoading()),
-            exhaustMap(() =>
-              fetchEntities({
-                ...store.slices,
-                ...store.signals,
-                ...store.methods,
-              } as Prettify<SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']>)
-            ),
-            tap((entities) => {
-              console.log('entities', entities);
-              setResult(entities);
-              setLoaded();
-            })
-          )
-        ),
-      }))
+      withHooks({
+        onInit: (input, environmentInjector = inject(EnvironmentInjector)) => {
+          effect(() => {
+            if (loading()) {
+              runInInjectionContext(environmentInjector, () => {
+                from(
+                  fetchEntities({
+                    ...store.slices,
+                    ...store.signals,
+                    ...store.methods,
+                  } as Prettify<SignalStoreSlices<Input['state']> & Input['signals'] & Input['methods']>)
+                )
+                  .pipe(
+                    tapResponse({
+                      next: (result) => {
+                        if (Array.isArray(result)) {
+                          patchState(
+                            input,
+                            collection
+                              ? setAllEntities(result as Entity[], {
+                                  collection,
+                                })
+                              : setAllEntities(result)
+                          );
+                        } else {
+                          const { entities, total } = result;
+                          setEntitiesLoadResult(entities, total);
+                        }
+                        setLoaded();
+                      },
+                      error: (error) => {
+                        setFail(error);
+                        setLoaded();
+                      },
+                    }),
+                    first()
+                  )
+                  .subscribe();
+              });
+            }
+          });
+        },
+      })
     )(store); // we execute the factory so we can pass the input
   };
 }
@@ -224,7 +269,7 @@ function getEntitiesLoadingCallKeys(config?: { collection?: string }) {
     loadEntitiesPageKey: collection
       ? `load${capitalizedProp}Page`
       : 'loadEntitiesPage',
-    setEntitiesLoadResult: collection
+    setEntitiesLoadResultKey: collection
       ? `set${capitalizedProp}LoadedResult`
       : 'setEntitiesLoadedResult',
     filterKey: collection ? `${config.collection}Filter` : 'filter',
